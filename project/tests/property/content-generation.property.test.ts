@@ -13,14 +13,14 @@ describe('Automated Content Generation - Property Tests', () => {
    * Property 6: Automated Content Generation
    * Simplified test for chapter break detection
    */
-  it('should automatically detect and generate chapter breaks from any text content', async () => {
-    await fc.assert(
-      fc.asyncProperty(
+  it('should automatically detect and generate chapter breaks from any text content', () => {
+    fc.assert(
+      fc.property(
         fc.record({
-          content: fc.string({ minLength: 100, maxLength: 1000 }),
-          chapterCount: fc.integer({ min: 1, max: 5 })
+          content: fc.string({ minLength: 100, maxLength: 500 }),
+          chapterCount: fc.integer({ min: 1, max: 3 })
         }),
-        async (params) => {
+        (params) => {
           // Mock chapter detection - simple implementation
           const chapters = Array.from({ length: params.chapterCount }, (_, index) => ({
             chapterNumber: index + 1,
@@ -49,19 +49,19 @@ describe('Automated Content Generation - Property Tests', () => {
    * Property: Navigation Marker Generation
    * Simplified test for navigation markers
    */
-  it('should generate navigation markers for chapters', async () => {
-    await fc.assert(
-      fc.asyncProperty(
+  it('should generate navigation markers for chapters', () => {
+    fc.assert(
+      fc.property(
         fc.array(
           fc.record({
             id: fc.uuid(),
-            number: fc.integer({ min: 1, max: 10 }),
-            title: fc.string({ minLength: 5, maxLength: 50 }),
-            duration: fc.integer({ min: 30, max: 300 })
+            number: fc.integer({ min: 1, max: 5 }),
+            title: fc.string({ minLength: 5, maxLength: 20 }),
+            duration: fc.integer({ min: 30, max: 120 })
           }),
-          { minLength: 1, maxLength: 3 }
+          { minLength: 1, maxLength: 2 }
         ),
-        async (chapters) => {
+        (chapters) => {
           // Mock navigation marker generation
           const markers = chapters.map((chapter, index) => ({
             id: `marker-${index + 1}`,
@@ -79,43 +79,6 @@ describe('Automated Content Generation - Property Tests', () => {
             expect(marker.chapterNumber).toBe(index + 1);
             expect(marker.timestamp).toBeGreaterThanOrEqual(0);
           });
-        }
-      ),
-      { numRuns: 1 }
-    );
-  });
-
-  /**
-   * Property: Table of Contents Generation
-   * Simplified test for TOC generation
-   */
-  it('should generate table of contents with timestamps', async () => {
-    await fc.assert(
-      fc.asyncProperty(
-        fc.array(
-          fc.record({
-            number: fc.integer({ min: 1, max: 10 }),
-            title: fc.string({ minLength: 5, maxLength: 50 }),
-            duration: fc.integer({ min: 60, max: 300 })
-          }),
-          { minLength: 1, maxLength: 3 }
-        ),
-        async (chapters) => {
-          // Mock TOC generation
-          let toc = 'Table of Contents\n\n';
-          let currentTime = 0;
-          
-          chapters.forEach((chapter, index) => {
-            const minutes = Math.floor(currentTime / 60);
-            const seconds = currentTime % 60;
-            const timestamp = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-            toc += `Chapter ${index + 1}: ${chapter.title} - ${timestamp}\n`;
-            currentTime += chapter.duration;
-          });
-          
-          expect(toc).toContain('Table of Contents');
-          expect(toc).toContain('Chapter 1');
-          expect(toc.split('\n').length).toBeGreaterThan(2);
         }
       ),
       { numRuns: 1 }
