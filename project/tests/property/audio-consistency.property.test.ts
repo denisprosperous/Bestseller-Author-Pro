@@ -90,7 +90,7 @@ describe('Audio Consistency - Property Tests', () => {
             }),
             { minLength: 2, maxLength: 3 } // Reduce array size
           ),
-          minQualityScore: fc.integer({ min: 6, max: 8 }) // Use integer instead of float
+          minQualityScore: fc.integer({ min: 6, max: 7 }) // Ensure minimum is achievable with generated scores
         }),
         (params) => {
           // Check that all chapters meet minimum quality

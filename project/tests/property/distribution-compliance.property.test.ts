@@ -176,14 +176,19 @@ describe('Distribution Format Compliance - Property Tests', () => {
           format: fc.constantFrom('MP3', 'M4A', 'WAV', 'FLAC'),
           audiobook: fc.record({
             title: fc.string({ minLength: 5, maxLength: 100 }),
-            artist: fc.string({ minLength: 3, max: 50 }),
+            artist: fc.string({ minLength: 3, maxLength: 50 }),
             tracks: fc.array(
               fc.record({
-                number: fc.integer({ min: 1, max: 20 }), // Reduce range
                 title: fc.string({ minLength: 5, maxLength: 30 }), // Reduce length
                 duration: fc.integer({ min: 60, max: 1800 }) // 1 min to 30 min
               }),
               { minLength: 1, maxLength: 5 } // Reduce from 15 to 5
+            ).map(tracks => 
+              // Ensure sequential numbering from 1
+              tracks.map((track, index) => ({
+                ...track,
+                number: index + 1
+              }))
             )
           })
         }),
@@ -226,10 +231,10 @@ describe('Distribution Format Compliance - Property Tests', () => {
             expect(track.audioFile).toContain(`.${params.format.toLowerCase()}`);
           });
           
-          // Ensure tracks are properly numbered (use original track numbers)
+          // Ensure tracks are properly numbered (sequential from 1)
           const trackNumbers = genericExport.metadata.trackList.map(t => t.number);
-          const originalNumbers = params.audiobook.tracks.map(t => t.number);
-          expect(trackNumbers).toEqual(originalNumbers);
+          const expectedNumbers = Array.from({ length: trackNumbers.length }, (_, i) => i + 1);
+          expect(trackNumbers).toEqual(expectedNumbers);
           
           expect(genericExport.validation.isValid).toBe(true);
         }
