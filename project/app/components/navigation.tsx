@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router";
-import { BookOpen, Lightbulb, FileEdit, Eye, Volume2, Settings, LogOut, User } from "lucide-react";
+import { BookOpen, Lightbulb, FileEdit, Eye, Volume2, Palette, Settings, LogOut, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import classNames from "classnames";
 import { AuthService, type AuthUser } from "~/services/auth-service";
@@ -67,6 +67,12 @@ export function Navigation() {
             <Link to="/audiobooks" className={classNames(styles.link, isActive("/audiobooks") && styles.active)}>
               <Volume2 className={styles.linkIcon} />
               Audiobooks
+            </Link>
+          </li>
+          <li>
+            <Link to="/children-books" className={classNames(styles.link, isActive("/children-books") && styles.active)}>
+              <Palette className={styles.linkIcon} />
+              Children's Books
             </Link>
           </li>
           <li>

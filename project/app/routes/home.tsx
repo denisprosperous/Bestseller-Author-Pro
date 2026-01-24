@@ -1,11 +1,10 @@
 import { Link } from "react-router";
-import { Sparkles, BookOpen, Wand2, Download, Shield, Zap } from "lucide-react";
-import type { Route } from "./+types/home";
+import { Sparkles, BookOpen, Wand2, Download, Shield, Zap, Volume2, Palette } from "lucide-react";
 import { Navigation } from "~/components/navigation";
 import { ProtectedRoute } from "~/components/protected-route";
 import styles from "./home.module.css";
 
-export function meta({}: Route.MetaArgs) {
+export function meta() {
   return [
     { title: "Bestseller Author Pro - AI-Powered Ebook Creation" },
     {
@@ -61,6 +60,24 @@ export default function Home() {
             </div>
 
             <div className={styles.feature}>
+              <Volume2 className={styles.featureIcon} />
+              <h3 className={styles.featureTitle}>AI Audiobooks</h3>
+              <p className={styles.featureDescription}>
+                Convert your ebooks to professional audiobooks with realistic AI voices. Multiple voice options and 
+                audio quality enhancement included.
+              </p>
+            </div>
+
+            <div className={styles.feature}>
+              <Palette className={styles.featureIcon} />
+              <h3 className={styles.featureTitle}>Children's Books</h3>
+              <p className={styles.featureDescription}>
+                Create illustrated children's books with AI-generated stories and artwork. Age-appropriate content 
+                with consistent character designs.
+              </p>
+            </div>
+
+            <div className={styles.feature}>
               <Wand2 className={styles.featureIcon} />
               <h3 className={styles.featureTitle}>Content Humanization</h3>
               <p className={styles.featureDescription}>
@@ -98,6 +115,7 @@ export default function Home() {
           </div>
         </div>
       </section>
+      </div>
     </ProtectedRoute>
   );
 }

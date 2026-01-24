@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Form, Link, useActionData, useNavigation } from "react-router";
-import type { Route } from "./+types/login";
+import { Form, Link, useActionData, useNavigation, redirect } from "react-router";
+import type { ActionFunctionArgs } from "react-router";
 import { AuthService } from "~/services/auth-service";
 import { Button } from "~/components/ui/button/button";
 import { Input } from "~/components/ui/input/input";
@@ -9,14 +9,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/com
 import { Alert, AlertDescription } from "~/components/ui/alert/alert";
 import styles from "./login.module.css";
 
-export function meta({}: Route.MetaArgs) {
+export function meta() {
   return [
     { title: "Login - Bestseller Author Pro" },
     { name: "description", content: "Sign in to your account to create amazing ebooks with AI" },
   ];
 }
 
-export async function action({ request }: Route.ActionArgs) {
+export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
@@ -41,7 +41,7 @@ export async function action({ request }: Route.ActionArgs) {
 
     if (user) {
       // Redirect to home page after successful login
-      return Response.redirect("/");
+      return redirect("/");
     }
   }
 

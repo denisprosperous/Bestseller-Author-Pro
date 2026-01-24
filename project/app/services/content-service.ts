@@ -58,6 +58,45 @@ export interface CreateEbookParams {
   outline?: string;
 }
 
+// Children's Books interfaces
+export interface ChildrensBookCharacter {
+  id: string;
+  name: string;
+  description: string;
+  visualPrompt: string;
+  referenceImage?: string;
+}
+
+export interface ChildrensBookPage {
+  id: string;
+  pageNumber: number;
+  text: string;
+  illustrationPrompt: string;
+  illustrationUrl?: string;
+  layoutType: 'full-page' | 'text-left' | 'text-right' | 'text-bottom';
+}
+
+export interface ChildrensBook {
+  id: string;
+  title: string;
+  ageGroup: '0-2' | '3-5' | '6-8' | '9-12';
+  theme: string;
+  illustrationStyle: string;
+  characters: ChildrensBookCharacter[];
+  pages: ChildrensBookPage[];
+  status: 'draft' | 'generating' | 'completed' | 'error';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateChildrensBookParams {
+  title: string;
+  ageGroup: '0-2' | '3-5' | '6-8' | '9-12';
+  theme: string;
+  illustrationStyle: string;
+  pageCount: number;
+}
+
 export class ContentService {
   /**
    * Save a new ebook to the database
@@ -399,6 +438,234 @@ export class ContentService {
       }
     } catch (error) {
       throw new Error(`ContentService.updateStatus: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  // Children's Books Methods
+
+  /**
+   * Save a children's book to the database
+   */
+  async saveChildrensBook(userId: string, book: Omit<ChildrensBook, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+    try {
+      // Insert children's book record
+      const { data: bookData, error: bookError } = await supabase
+        .from('childrens_books')
+        .insert({
+          user_id: userId,
+          title: book.title,
+          age_group: book.ageGroup,
+          theme: book.theme,
+          illustration_style: book.illustrationStyle,
+          status: book.status
+        })
+        .select('id')
+        .single();
+
+      if (bookError) {
+        throw new Error(`Failed to save children's book: ${bookError.message}`);
+      }
+
+      const bookId = bookData.id;
+
+      // Insert characters
+      if (book.characters.length > 0) {
+        const charactersData = book.characters.map(character => ({
+          book_id: bookId,
+          name: character.name,
+          description: character.description,
+          visual_prompt: character.visualPrompt,
+          reference_image: character.referenceImage
+        }));
+
+        const { error: charactersError } = await supabase
+          .from('book_characters')
+          .insert(charactersData);
+
+        if (charactersError) {
+          // Rollback book if characters fail
+          await supabase.from('childrens_books').delete().eq('id', bookId);
+          throw new Error(`Failed to save characters: ${charactersError.message}`);
+        }
+      }
+
+      // Insert pages
+      if (book.pages.length > 0) {
+        const pagesData = book.pages.map(page => ({
+          book_id: bookId,
+          page_number: page.pageNumber,
+          text_content: page.text,
+          illustration_prompt: page.illustrationPrompt,
+          illustration_url: page.illustrationUrl,
+          layout_type: page.layoutType
+        }));
+
+        const { error: pagesError } = await supabase
+          .from('book_pages')
+          .insert(pagesData);
+
+        if (pagesError) {
+          // Rollback book if pages fail
+          await supabase.from('childrens_books').delete().eq('id', bookId);
+          throw new Error(`Failed to save pages: ${pagesError.message}`);
+        }
+      }
+
+      return bookId;
+    } catch (error) {
+      throw new Error(`ContentService.saveChildrensBook: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Get a children's book with all characters and pages
+   */
+  async getChildrensBook(userId: string, bookId: string): Promise<ChildrensBook | null> {
+    try {
+      // Get book data
+      const { data: bookData, error: bookError } = await supabase
+        .from('childrens_books')
+        .select('*')
+        .eq('id', bookId)
+        .eq('user_id', userId)
+        .single();
+
+      if (bookError) {
+        if (bookError.code === 'PGRST116') {
+          return null; // Not found
+        }
+        throw new Error(`Failed to get children's book: ${bookError.message}`);
+      }
+
+      // Get characters
+      const { data: charactersData, error: charactersError } = await supabase
+        .from('book_characters')
+        .select('*')
+        .eq('book_id', bookId);
+
+      if (charactersError) {
+        throw new Error(`Failed to get characters: ${charactersError.message}`);
+      }
+
+      // Get pages
+      const { data: pagesData, error: pagesError } = await supabase
+        .from('book_pages')
+        .select('*')
+        .eq('book_id', bookId)
+        .order('page_number');
+
+      if (pagesError) {
+        throw new Error(`Failed to get pages: ${pagesError.message}`);
+      }
+
+      // Transform to ChildrensBook format
+      const book: ChildrensBook = {
+        id: bookData.id,
+        title: bookData.title,
+        ageGroup: bookData.age_group,
+        theme: bookData.theme,
+        illustrationStyle: bookData.illustration_style,
+        status: bookData.status,
+        createdAt: bookData.created_at,
+        updatedAt: bookData.updated_at,
+        characters: (charactersData || []).map(character => ({
+          id: character.id,
+          name: character.name,
+          description: character.description,
+          visualPrompt: character.visual_prompt,
+          referenceImage: character.reference_image
+        })),
+        pages: (pagesData || []).map(page => ({
+          id: page.id,
+          pageNumber: page.page_number,
+          text: page.text_content,
+          illustrationPrompt: page.illustration_prompt,
+          illustrationUrl: page.illustration_url,
+          layoutType: page.layout_type
+        }))
+      };
+
+      return book;
+    } catch (error) {
+      throw new Error(`ContentService.getChildrensBook: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Get all children's books for a user
+   */
+  async getUserChildrensBooks(userId: string): Promise<Omit<ChildrensBook, 'characters' | 'pages'>[]> {
+    try {
+      const { data, error } = await supabase
+        .from('childrens_books')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw new Error(`Failed to get user children's books: ${error.message}`);
+      }
+
+      return (data || []).map(book => ({
+        id: book.id,
+        title: book.title,
+        ageGroup: book.age_group,
+        theme: book.theme,
+        illustrationStyle: book.illustration_style,
+        status: book.status,
+        createdAt: book.created_at,
+        updatedAt: book.updated_at
+      }));
+    } catch (error) {
+      throw new Error(`ContentService.getUserChildrensBooks: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Update a children's book
+   */
+  async updateChildrensBook(userId: string, bookId: string, updates: Partial<ChildrensBook>): Promise<void> {
+    try {
+      const updateData: any = {};
+      
+      if (updates.title) updateData.title = updates.title;
+      if (updates.ageGroup) updateData.age_group = updates.ageGroup;
+      if (updates.theme) updateData.theme = updates.theme;
+      if (updates.illustrationStyle) updateData.illustration_style = updates.illustrationStyle;
+      if (updates.status) updateData.status = updates.status;
+
+      const { error } = await supabase
+        .from('childrens_books')
+        .update(updateData)
+        .eq('id', bookId)
+        .eq('user_id', userId);
+
+      if (error) {
+        throw new Error(`Failed to update children's book: ${error.message}`);
+      }
+    } catch (error) {
+      throw new Error(`ContentService.updateChildrensBook: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Delete a children's book and all its characters and pages
+   */
+  async deleteChildrensBook(userId: string, bookId: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('childrens_books')
+        .delete()
+        .eq('id', bookId)
+        .eq('user_id', userId);
+
+      if (error) {
+        throw new Error(`Failed to delete children's book: ${error.message}`);
+      }
+      
+      // Characters and pages will be deleted automatically due to CASCADE
+    } catch (error) {
+      throw new Error(`ContentService.deleteChildrensBook: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 }
