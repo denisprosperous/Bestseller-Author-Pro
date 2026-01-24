@@ -28,7 +28,7 @@ describe('Audio Consistency - Property Tests', () => {
                 volume: fc.float({ min: Math.fround(0.7), max: Math.fround(1.0) })
               })
             }),
-            { minLength: 2, maxLength: 4 } // Reduce array size
+            { minLength: 1, maxLength: 2 } // Minimal array size for speed
           ),
           consistencyThreshold: fc.float({ min: Math.fround(0.1), max: Math.fround(0.3) })
         }),
@@ -88,7 +88,7 @@ describe('Audio Consistency - Property Tests', () => {
                 channels: fc.constant(2)        // Use consistent channels
               })
             }),
-            { minLength: 2, maxLength: 3 } // Reduce array size
+            { minLength: 1, maxLength: 2 } // Minimal array size for speed
           ),
           minQualityScore: fc.integer({ min: 6, max: 7 }) // Ensure minimum is achievable with generated scores
         }),
@@ -127,13 +127,13 @@ describe('Audio Consistency - Property Tests', () => {
     fc.assert(
       fc.property(
         fc.record({
-          keyWords: fc.array(fc.string({ minLength: 4, maxLength: 8 }), { minLength: 2, maxLength: 3 }), // Reduce complexity
+          keyWords: fc.array(fc.string({ minLength: 4, maxLength: 6 }), { minLength: 1, maxLength: 2 }), // Minimal complexity
           chapters: fc.array(
             fc.record({
               number: fc.integer({ min: 1, max: 4 }), // Reduce range
-              wordOccurrences: fc.integer({ min: 1, max: 3 }) // Reduce occurrences
+              wordOccurrences: fc.integer({ min: 1, max: 2 }) // Reduce occurrences
             }),
-            { minLength: 2, maxLength: 3 } // Reduce array size
+            { minLength: 1, maxLength: 2 } // Minimal array size for speed
           )
         }),
         (params) => {

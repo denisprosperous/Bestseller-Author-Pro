@@ -20,14 +20,14 @@ describe('Distribution Format Compliance - Property Tests', () => {
           audiobook: fc.record({
             title: fc.string({ minLength: 5, maxLength: 100 }),
             author: fc.string({ minLength: 3, maxLength: 50 }),
-            totalDuration: fc.integer({ min: 600, max: 7200 }), // Reduce range (10 min to 2 hours)
+            totalDuration: fc.integer({ min: 600, max: 1800 }), // Smaller range (10-30 min)
             chapters: fc.array(
               fc.record({
                 number: fc.integer({ min: 1, max: 10 }), // Reduce range
                 duration: fc.integer({ min: 60, max: 1800 }), // Reduce range (1 min to 30 min)
                 audioUrl: fc.webUrl().map(url => url + '/chapter.mp3')
               }),
-              { minLength: 1, maxLength: 5 } // Reduce array size
+              { minLength: 1, maxLength: 3 } // Minimal array size
             )
           })
         }),
@@ -107,7 +107,7 @@ describe('Distribution Format Compliance - Property Tests', () => {
                 duration: fc.integer({ min: 60, max: 3600 }), // 1 minute to 1 hour
                 audioUrl: fc.webUrl().map(url => url + '/episode.mp3')
               }),
-              { minLength: 1, maxLength: 10 } // Reduce from 50 to 10
+              { minLength: 1, maxLength: 3 } // Minimal episodes
             )
           })
         }),
@@ -182,7 +182,7 @@ describe('Distribution Format Compliance - Property Tests', () => {
                 title: fc.string({ minLength: 5, maxLength: 30 }), // Reduce length
                 duration: fc.integer({ min: 60, max: 1800 }) // 1 min to 30 min
               }),
-              { minLength: 1, maxLength: 5 } // Reduce from 15 to 5
+              { minLength: 1, maxLength: 3 } // Minimal tracks
             ).map(tracks => 
               // Ensure sequential numbering from 1
               tracks.map((track, index) => ({

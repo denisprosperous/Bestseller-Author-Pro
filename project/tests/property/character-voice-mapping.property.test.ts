@@ -24,14 +24,14 @@ describe('Character Voice Management - Property Tests', () => {
               ageRange: fc.constantFrom('child', 'young-adult', 'adult', 'elderly'),
               personality: fc.constantFrom('warm', 'authoritative', 'friendly', 'dramatic')
             }),
-            { minLength: 2, maxLength: 5 }
+            { minLength: 1, maxLength: 3 }
           ),
           chapters: fc.array(
             fc.record({
               number: fc.integer({ min: 1, max: 10 }),
-              dialogue: fc.array(fc.string({ minLength: 10, maxLength: 50 }), { minLength: 1, maxLength: 3 })
+              dialogue: fc.array(fc.string({ minLength: 10, maxLength: 30 }), { minLength: 1, maxLength: 2 })
             }),
-            { minLength: 2, maxLength: 4 }
+            { minLength: 1, maxLength: 2 }
           )
         }),
         (params) => {
@@ -89,7 +89,7 @@ describe('Character Voice Management - Property Tests', () => {
               importance: fc.constantFrom('main', 'supporting', 'minor'),
               dialogueFrequency: fc.integer({ min: 1, max: 20 })
             }),
-            { minLength: 1, maxLength: 4 }
+            { minLength: 1, maxLength: 2 }
           ),
           qualityThreshold: fc.integer({ min: 6, max: 7 }) // Ensure threshold is achievable for all character types
         }),

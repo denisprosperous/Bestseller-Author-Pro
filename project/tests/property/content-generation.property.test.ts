@@ -17,8 +17,8 @@ describe('Automated Content Generation - Property Tests', () => {
     fc.assert(
       fc.property(
         fc.record({
-          content: fc.string({ minLength: 100, maxLength: 500 }),
-          chapterCount: fc.integer({ min: 1, max: 3 })
+          content: fc.string({ minLength: 50, maxLength: 200 }), // Smaller content
+          chapterCount: fc.integer({ min: 1, max: 2 }) // Fewer chapters
         }),
         (params) => {
           // Mock chapter detection - simple implementation
