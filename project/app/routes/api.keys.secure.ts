@@ -1,4 +1,5 @@
-import { json, type ActionFunctionArgs, type LoaderFunctionArgs } from "react-router";
+import { json } from "react-router";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "@react-router/node";
 import { AuthService } from "~/services/auth-service";
 import { supabase } from "~/lib/supabase";
 import { encrypt, decrypt } from "~/lib/encryption";

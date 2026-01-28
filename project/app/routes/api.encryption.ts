@@ -1,4 +1,5 @@
-import { json, type ActionFunctionArgs } from "react-router";
+import { json } from "react-router";
+import type { ActionFunctionArgs } from "@react-router/node";
 import { AuthService } from "~/services/auth-service";
 import { encrypt, decrypt } from "~/lib/encryption";
 

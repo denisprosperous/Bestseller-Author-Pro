@@ -1,7 +1,7 @@
 import React from "react";
 import { Loader2 } from "lucide-react";
-import { json, redirect, type ActionFunctionArgs, type LoaderFunctionArgs } from "react-router";
-import { useLoaderData, useActionData, useNavigation, Form } from "react-router";
+import { json, useLoaderData, useActionData, useNavigation, Form, redirect } from "react-router";
+import type { ActionFunctionArgs, type LoaderFunctionArgs } from "@react-router/node";
 import type { Route } from "./+types/brainstorm";
 import { Navigation } from "~/components/navigation";
 import { ProtectedRoute } from "~/components/protected-route";

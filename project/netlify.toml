@@ -1,0 +1,63 @@
+[build]
+  # Build command
+  command = "npm run build"
+  
+  # Directory to publish (React Router build output)
+  publish = "build/client"
+  
+  # Functions directory (for serverless functions)
+  functions = "build/server"
+
+[build.environment]
+  # Node.js version
+  NODE_VERSION = "18"
+  
+  # NPM version
+  NPM_VERSION = "9"
+
+# Redirect rules for React Router
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Security headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.deepseek.com https://api.elevenlabs.io https://api.resemble.ai https://api-inference.huggingface.co https://api.edenai.run;"
+
+# Cache static assets
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Environment variables (these should be set in Netlify dashboard)
+# SUPABASE_PROJECT_URL
+# SUPABASE_API_KEY
+# ENCRYPTION_KEY
+# XAI_API_KEY
+# OPENAI_API_KEY
+# ANTHROPIC_API_KEY
+# GOOGLE_AI_API_KEY
+# HUGGINGFACE_API_KEY
+# ELEVENLABS_API_KEY
+# NODE_ENV=production
+
+# Optional: Deploy previews configuration
+[context.deploy-preview]
+  command = "npm run build"
+
+[context.branch-deploy]
+  command = "npm run build"
+
+# Optional: Split testing
+# [split_testing]
+#   [[split_testing.tests]]
+#     path = "/"
+#     branches = ["main", "feature-branch"]

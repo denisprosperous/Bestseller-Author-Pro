@@ -362,8 +362,7 @@ export default function Builder() {
     <ProtectedRoute>
       <div className={styles.container}>
         <Navigation />
-
-      <div className={styles.content}>
+        <div className={styles.content}>
         <header className={styles.header}>
           <h1 className={styles.title}>Build Your Ebook</h1>
           <p className={styles.description}>

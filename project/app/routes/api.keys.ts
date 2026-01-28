@@ -1,4 +1,5 @@
-import { json, type ActionFunctionArgs, type LoaderFunctionArgs } from "react-router";
+import { json } from "react-router";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "@react-router/node";
 import { createServerClient } from "@supabase/ssr";
 import crypto from "crypto";
 

@@ -11,7 +11,9 @@
     "test:run": "vitest run",
     "test:property": "vitest run tests/property",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "setup:db": "node setup-database.js",
+    "deploy": "vercel --prod"
   },
   "dependencies": {
     "@dazl/color-scheme": "^1.2.1",
@@ -48,6 +50,7 @@
     "@types/react": "^19.2.8",
     "@types/react-dom": "^19.2.3",
     "@vitest/ui": "^4.0.18",
+    "dotenv": "^16.4.7",
     "fast-check": "^4.5.3",
     "prettier": "^3.8.0",
     "typescript": "~5.9.3",
