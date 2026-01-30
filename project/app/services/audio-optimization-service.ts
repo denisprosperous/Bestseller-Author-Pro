@@ -479,15 +479,49 @@ export class AudioOptimizationService {
   }
 
   /**
-   * Private method: Generate audio (placeholder)
+   * Private method: Generate audio using real TTS service
    */
   private async generateAudioComplete(text: string, voiceSettings: any): Promise<ArrayBuffer> {
-    // Simulate audio generation
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    // Return mock audio data
-    const mockAudioSize = text.length * 1000; // Rough estimate
-    return new ArrayBuffer(mockAudioSize);
+    try {
+      // Use the TTS service to generate real audio
+      const { ttsService } = await import('./tts-service');
+      
+      // Extract voice settings
+      const provider = voiceSettings.provider || 'google';
+      const voiceId = voiceSettings.voiceId || 'en-US-Standard-A';
+      const apiKey = voiceSettings.apiKey;
+      
+      if (!apiKey) {
+        throw new Error('API key required for audio generation');
+      }
+      
+      // Generate audio using TTS service
+      const audioResult = await ttsService.generateSpeech({
+        text,
+        provider,
+        voiceId,
+        apiKey,
+        speed: voiceSettings.speed || 1.0,
+        pitch: voiceSettings.pitch || 0,
+        volume: voiceSettings.volume || 1.0
+      });
+      
+      // Convert base64 audio to ArrayBuffer if needed
+      if (typeof audioResult.audioContent === 'string') {
+        const binaryString = atob(audioResult.audioContent);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        return bytes.buffer;
+      }
+      
+      return audioResult.audioContent;
+    } catch (error) {
+      console.error('Audio generation error:', error);
+      // Fallback: return empty audio buffer
+      return new ArrayBuffer(0);
+    }
   }
 
   /**
