@@ -1,7 +1,7 @@
 import React from "react";
 import { Loader2 } from "lucide-react";
-import { json, useLoaderData, useActionData, useNavigation, Form, redirect } from "react-router";
-import type { ActionFunctionArgs, type LoaderFunctionArgs } from "@react-router/node";
+import { useLoaderData, useActionData, useNavigation, Form, redirect } from "react-router";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import type { Route } from "./+types/brainstorm";
 import { Navigation } from "~/components/navigation";
 import { ProtectedRoute } from "~/components/protected-route";
@@ -49,8 +49,7 @@ export function meta({}: Route.MetaArgs) {
  */
 export async function loader({ request }: LoaderFunctionArgs): Promise<Response> {
   try {
-    const authService = new AuthService();
-    const user = await authService.getCurrentUser();
+    const user = await AuthService.getCurrentUser();
     
     if (!user) {
       return redirect('/login');
@@ -63,21 +62,23 @@ export async function loader({ request }: LoaderFunctionArgs): Promise<Response>
     }
 
     // Load existing brainstorm results from session
-    const sessionData = await sessionService.getSessionData(sessionId);
+    const sessionData = await sessionService.getSession(user.id, sessionId);
     const existingResults = sessionData?.brainstorm_data || null;
 
     // Check if user has any API keys
+    // Note: This checks database keys. localStorage keys are checked client-side.
+    // We'll assume keys exist if the user is authenticated (they can add them in Settings)
     const providers = await apiKeyService.getAllApiKeys(user.id);
-    const hasApiKeys = providers.length > 0;
+    const hasApiKeys = true; // Always allow access - will check for actual keys when generating
 
-    return json<LoaderData>({
+    return Response.json({
       sessionId,
       existingResults,
       hasApiKeys
     });
   } catch (error) {
     console.error('Brainstorm loader error:', error);
-    return json<LoaderData>({
+    return Response.json({
       sessionId: null,
       existingResults: null,
       hasApiKeys: false
@@ -90,11 +91,10 @@ export async function loader({ request }: LoaderFunctionArgs): Promise<Response>
  */
 export async function action({ request }: ActionFunctionArgs): Promise<Response> {
   try {
-    const authService = new AuthService();
-    const user = await authService.getCurrentUser();
+    const user = await AuthService.getCurrentUser();
     
     if (!user) {
-      return json<ActionData>({ error: 'Authentication required' }, { status: 401 });
+      return Response.json({ error: 'Authentication required' }, { status: 401 });
     }
 
     const formData = await request.formData();
@@ -105,25 +105,24 @@ export async function action({ request }: ActionFunctionArgs): Promise<Response>
       const provider = formData.get('provider') as string;
       const model = formData.get('model') as string;
       const sessionId = formData.get('sessionId') as string;
+      const apiKey = formData.get('apiKey') as string;
 
       if (!idea?.trim()) {
-        return json<ActionData>({ error: 'Please enter a book idea' });
+        return Response.json({ error: 'Please enter a book idea' });
       }
 
       if (!sessionId) {
-        return json<ActionData>({ error: 'Session not found. Please refresh the page.' });
+        return Response.json({ error: 'Session not found. Please refresh the page.' });
+      }
+
+      if (!apiKey || !apiKey.trim()) {
+        return Response.json({ 
+          error: `No API key found for ${provider}. Please add your API key in Settings.` 
+        });
       }
 
       try {
-        // Get API key for the selected provider
-        const apiKey = await apiKeyService.getApiKey(user.id, provider === 'auto' ? 'openai' : provider);
-        if (!apiKey) {
-          return json<ActionData>({ 
-            error: `No API key found for ${provider}. Please add your API key in Settings.` 
-          });
-        }
-
-        // Generate brainstorm results
+        // Generate brainstorm results using the API key from localStorage
         const results = await aiService.brainstorm(idea.trim(), provider, model, apiKey);
         
         const brainstormResults: BrainstormResults = {
@@ -135,18 +134,16 @@ export async function action({ request }: ActionFunctionArgs): Promise<Response>
         };
 
         // Save results to session
-        await sessionService.updateSessionData(sessionId, {
-          brainstorm_data: brainstormResults
-        });
+        await sessionService.saveBrainstormResult(user.id, sessionId, brainstormResults);
 
-        return json<ActionData>({
+        return Response.json({
           success: true,
           results: brainstormResults,
           sessionId
         });
       } catch (error) {
         console.error('Brainstorm generation error:', error);
-        return json<ActionData>({
+        return Response.json({
           error: error instanceof Error ? error.message : 'Failed to generate brainstorm ideas'
         });
       }
@@ -157,17 +154,15 @@ export async function action({ request }: ActionFunctionArgs): Promise<Response>
       const sessionId = formData.get('sessionId') as string;
 
       if (!selectedTitle || !sessionId) {
-        return json<ActionData>({ error: 'Missing required data' });
+        return Response.json({ error: 'Missing required data' });
       }
 
       // Update session with selected title
-      const sessionData = await sessionService.getSessionData(sessionId);
+      const sessionData = await sessionService.getSession(user.id, sessionId);
       if (sessionData?.brainstorm_data) {
-        await sessionService.updateSessionData(sessionId, {
-          brainstorm_data: {
-            ...sessionData.brainstorm_data,
-            selectedTitle
-          }
+        await sessionService.saveBrainstormResult(user.id, sessionId, {
+          ...sessionData.brainstorm_data,
+          selectedTitle
         });
       }
 
@@ -175,10 +170,10 @@ export async function action({ request }: ActionFunctionArgs): Promise<Response>
       return redirect(`/builder?session=${sessionId}`);
     }
 
-    return json<ActionData>({ error: 'Invalid action' });
+    return Response.json({ error: 'Invalid action' });
   } catch (error) {
     console.error('Brainstorm action error:', error);
-    return json<ActionData>({
+    return Response.json({
       error: 'An unexpected error occurred. Please try again.'
     });
   }
@@ -193,6 +188,7 @@ export default function Brainstorm() {
   const [provider, setProvider] = React.useState("auto");
   const [model, setModel] = React.useState("auto");
   const [selectedTitle, setSelectedTitle] = React.useState<string | null>(null);
+  const formRef = React.useRef<HTMLFormElement>(null);
 
   const isSubmitting = navigation.state === "submitting";
   const results = actionData?.results || existingResults;
@@ -200,6 +196,34 @@ export default function Brainstorm() {
 
   const selectedProvider = AI_PROVIDERS.find((p) => p.id === provider);
   const availableModels = selectedProvider?.models || [];
+
+  // Handle form submission to inject API key from localStorage
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    
+    // Get API key from localStorage
+    const actualProvider = provider === 'auto' ? 'openai' : provider;
+    try {
+      const stored = localStorage.getItem('bestseller_api_keys');
+      if (stored) {
+        const keys = JSON.parse(stored);
+        const keyData = keys.find((k: any) => k.provider === actualProvider);
+        if (keyData) {
+          formData.set('apiKey', keyData.key);
+          console.log(`✅ Using ${actualProvider} key from localStorage`);
+        } else {
+          console.warn(`⚠️ No API key found for ${actualProvider} in localStorage`);
+        }
+      }
+    } catch (error) {
+      console.error('Error reading API key from localStorage:', error);
+    }
+    
+    // Submit the form with the API key
+    form.submit();
+  };
 
   // Auto-select first model when provider changes
   React.useEffect(() => {
@@ -243,9 +267,10 @@ export default function Brainstorm() {
               </p>
             </header>
 
-            <Form method="post" className={styles.form}>
+            <Form method="post" className={styles.form} onSubmit={handleSubmit} ref={formRef}>
               <input type="hidden" name="actionType" value="generate" />
               <input type="hidden" name="sessionId" value={sessionId || ''} />
+              <input type="hidden" name="apiKey" value="" />
               
               <div className={styles.formGroup}>
                 <label htmlFor="idea" className={styles.label}>

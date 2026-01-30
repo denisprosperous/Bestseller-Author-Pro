@@ -59,7 +59,7 @@ export class AIService {
           }
 
           provider = p;
-          model = this.getDefaultModel(p);
+          model = await this.getBestAvailableModel(p, apiKey);
           
           // Try to generate content with this provider
           const response = await this.callProvider(provider, model, prompt, maxTokens, temperature, apiKey);
@@ -81,9 +81,9 @@ export class AIService {
       throw new Error(`All AI providers failed. Last error: ${lastError?.message || 'Unknown error'}`);
     }
 
-    // Auto-select model if needed
+    // Auto-select model if needed - use best available model
     if (model === "auto") {
-      model = this.getDefaultModel(provider);
+      model = await this.getBestAvailableModel(provider, apiKey);
     }
 
     // Validate API key with detailed error message
@@ -124,17 +124,215 @@ export class AIService {
   }
 
   /**
-   * Get default model for a provider
+   * Get best available model for a provider based on API key capabilities
+   */
+  private async getBestAvailableModel(provider: string, apiKey: string): Promise<string> {
+    // Try to detect available models dynamically
+    try {
+      const availableModels = await this.getAvailableModels(provider, apiKey);
+      if (availableModels.length > 0) {
+        return this.selectBestModel(provider, availableModels);
+      }
+    } catch (error) {
+      console.warn(`Failed to detect models for ${provider}, using defaults:`, error);
+    }
+
+    // Fallback to latest known models (2026)
+    const latestModels: Record<string, string> = {
+      openai: "gpt-5.2", // Latest GPT-5.2 (Jan 2026)
+      anthropic: "claude-4-opus", // Latest Claude 4 Opus
+      google: "gemini-2-pro", // Latest Gemini 2 Pro
+      xai: "grok-3", // Latest Grok 3
+      deepseek: "deepseek-llm-7b-instruct",
+    };
+    return latestModels[provider] || "gpt-5.2";
+  }
+
+  /**
+   * Get default model for a provider (backwards compatibility)
    */
   private getDefaultModel(provider: string): string {
     const defaults: Record<string, string> = {
-      openai: "gpt-4-turbo",
-      anthropic: "claude-3-5-sonnet-20241022",
-      google: "gemini-1.5-pro",
-      xai: "grok-4-latest",
+      openai: "gpt-5.2",
+      anthropic: "claude-4-opus",
+      google: "gemini-2-pro",
+      xai: "grok-3",
       deepseek: "deepseek-llm-7b-instruct",
     };
-    return defaults[provider] || "gpt-4";
+    return defaults[provider] || "gpt-5.2";
+  }
+
+  /**
+   * Get available models for a provider
+   */
+  private async getAvailableModels(provider: string, apiKey: string): Promise<string[]> {
+    switch (provider) {
+      case "openai":
+        return this.getOpenAIModels(apiKey);
+      case "anthropic":
+        return this.getAnthropicModels(apiKey);
+      case "google":
+        return this.getGoogleModels(apiKey);
+      case "xai":
+        return this.getXAIModels(apiKey);
+      case "deepseek":
+        return this.getDeepSeekModels(apiKey);
+      default:
+        return [];
+    }
+  }
+
+  /**
+   * Select the best model from available models
+   */
+  private selectBestModel(provider: string, availableModels: string[]): string {
+    // Define model preference order (best to fallback) - Updated for 2026
+    const modelPreferences: Record<string, string[]> = {
+      openai: [
+        "gpt-5.2",
+        "gpt-5",
+        "gpt-4-turbo-2024-04-09",
+        "gpt-4-turbo",
+        "gpt-4-0125-preview",
+        "gpt-4-1106-preview", 
+        "gpt-4",
+        "gpt-3.5-turbo-0125",
+        "gpt-3.5-turbo"
+      ],
+      anthropic: [
+        "claude-4-opus",
+        "claude-4-sonnet",
+        "claude-3-5-sonnet-20241022",
+        "claude-3-5-sonnet-20240620",
+        "claude-3-opus-20240229",
+        "claude-3-sonnet-20240229",
+        "claude-3-haiku-20240307"
+      ],
+      google: [
+        "gemini-2-pro",
+        "gemini-2-flash",
+        "gemini-1.5-pro-latest",
+        "gemini-1.5-pro",
+        "gemini-1.5-flash-latest",
+        "gemini-1.5-flash",
+        "gemini-pro"
+      ],
+      xai: [
+        "grok-3",
+        "grok-2-latest",
+        "grok-beta"
+      ],
+      deepseek: [
+        "deepseek-llm-7b-instruct",
+        "deepseek-coder-7b-instruct"
+      ]
+    };
+
+    const preferences = modelPreferences[provider] || [];
+    
+    // Find the first preferred model that's available
+    for (const preferredModel of preferences) {
+      if (availableModels.includes(preferredModel)) {
+        return preferredModel;
+      }
+    }
+
+    // If no preferred model found, return the first available
+    return availableModels[0] || this.getDefaultModel(provider);
+  }
+
+  /**
+   * Get available OpenAI models
+   */
+  private async getOpenAIModels(apiKey: string): Promise<string[]> {
+    try {
+      const response = await fetch("https://api.openai.com/v1/models", {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenAI models API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.data
+        .filter((model: any) => model.id.includes('gpt'))
+        .map((model: any) => model.id)
+        .sort((a: string, b: string) => b.localeCompare(a)); // Sort newest first
+    } catch (error) {
+      console.warn('Failed to fetch OpenAI models:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get available Anthropic models
+   */
+  private async getAnthropicModels(apiKey: string): Promise<string[]> {
+    // Anthropic doesn't have a public models endpoint, return known models (2026)
+    return [
+      "claude-4-opus",
+      "claude-4-sonnet",
+      "claude-3-5-sonnet-20241022",
+      "claude-3-5-sonnet-20240620", 
+      "claude-3-opus-20240229",
+      "claude-3-sonnet-20240229",
+      "claude-3-haiku-20240307"
+    ];
+  }
+
+  /**
+   * Get available Google models
+   */
+  private async getGoogleModels(apiKey: string): Promise<string[]> {
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Google models API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.models
+        .filter((model: any) => model.name.includes('gemini') && model.supportedGenerationMethods?.includes('generateContent'))
+        .map((model: any) => model.name.replace('models/', ''))
+        .sort((a: string, b: string) => b.localeCompare(a));
+    } catch (error) {
+      console.warn('Failed to fetch Google models:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get available xAI models
+   */
+  private async getXAIModels(apiKey: string): Promise<string[]> {
+    // xAI doesn't have a public models endpoint, return known models (2026)
+    return [
+      "grok-3",
+      "grok-2-latest",
+      "grok-beta"
+    ];
+  }
+
+  /**
+   * Get available DeepSeek models
+   */
+  private async getDeepSeekModels(apiKey: string): Promise<string[]> {
+    // DeepSeek via Hugging Face, return known models
+    return [
+      "deepseek-llm-7b-instruct",
+      "deepseek-coder-7b-instruct"
+    ];
   }
 
   /**
@@ -256,6 +454,13 @@ export class AIService {
     }
 
     const data = await response.json();
+    
+    // Check if response has the expected structure
+    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
+      console.error('Google API unexpected response:', JSON.stringify(data, null, 2));
+      throw new Error(`Google API returned unexpected response format. This may be due to an invalid API key or API quota exceeded.`);
+    }
+    
     return {
       content: data.candidates[0].content.parts[0].text,
       provider: "google",

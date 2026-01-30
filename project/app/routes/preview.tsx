@@ -376,6 +376,7 @@ export default function Preview() {
             )}
           </main>
         </div>
+        </div>
       </div>
     </ProtectedRoute>
   );

@@ -1,4 +1,16 @@
 import { supabase } from "~/lib/supabase";
+import { DEMO_MODE, DEMO_BRAINSTORM_RESULT } from "~/lib/demo-mode";
+
+// Development mode - read API keys from environment variables
+const DEV_API_KEYS = {
+  openai: import.meta.env.VITE_OPENAI_API_KEY || '',
+  anthropic: import.meta.env.VITE_ANTHROPIC_API_KEY || '',
+  google: import.meta.env.VITE_GOOGLE_API_KEY || '',
+  xai: import.meta.env.VITE_XAI_API_KEY || '',
+  deepseek: import.meta.env.VITE_DEEPSEEK_API_KEY || ''
+};
+
+const USE_DEV_KEYS = import.meta.env.VITE_USE_DEV_API_KEYS === 'true';
 
 export interface BookOutline {
   title: string;
@@ -15,10 +27,11 @@ export interface OutlineChapter {
 
 export interface BrainstormResult {
   titles: string[];
-  outline: BookOutline;
+  outline: string;
   topic: string;
   provider: string;
   model: string;
+  selectedTitle?: string;
 }
 
 export interface BuilderConfig {
@@ -61,6 +74,12 @@ export class SessionService {
    * Create a new generation session
    */
   async createSession(userId: string): Promise<string> {
+    // Demo mode - return demo session ID
+    if (DEMO_MODE) {
+      console.log('Demo mode: Creating session for user:', userId);
+      return 'demo-session-123';
+    }
+
     try {
       const { data, error } = await supabase
         .from('generation_sessions')
@@ -85,6 +104,19 @@ export class SessionService {
    * Get an active session by ID
    */
   async getSession(userId: string, sessionId: string): Promise<GenerationSession | null> {
+    // Demo mode - return demo session
+    if (DEMO_MODE) {
+      console.log('Demo mode: Getting session for user:', userId);
+      return {
+        id: sessionId,
+        userId,
+        brainstormData: DEMO_BRAINSTORM_RESULT,
+        status: 'active',
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        createdAt: new Date().toISOString()
+      };
+    }
+
     try {
       const { data, error } = await supabase
         .from('generation_sessions')
@@ -118,11 +150,17 @@ export class SessionService {
   /**
    * Get the most recent active session for a user
    */
-  async getActiveSession(userId: string): Promise<GenerationSession | null> {
+  async getActiveSession(userId: string): Promise<string | null> {
+    // Demo mode - return demo session ID
+    if (DEMO_MODE) {
+      console.log('Demo mode: Getting active session for user:', userId);
+      return 'demo-session-123';
+    }
+
     try {
       const { data, error } = await supabase
         .from('generation_sessions')
-        .select('*')
+        .select('id')
         .eq('user_id', userId)
         .eq('status', 'active')
         .gt('expires_at', new Date().toISOString())
@@ -137,16 +175,7 @@ export class SessionService {
         throw new Error(`Failed to get active session: ${error.message}`);
       }
 
-      return {
-        id: data.id,
-        userId: data.user_id,
-        brainstormData: data.brainstorm_data,
-        builderConfig: data.builder_config,
-        progress: data.progress,
-        status: data.status,
-        expiresAt: data.expires_at,
-        createdAt: data.created_at
-      };
+      return data.id;
     } catch (error) {
       throw new Error(`SessionService.getActiveSession: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -156,6 +185,12 @@ export class SessionService {
    * Save brainstorm results to session
    */
   async saveBrainstormResult(userId: string, sessionId: string, result: BrainstormResult): Promise<void> {
+    // Demo mode - simulate save
+    if (DEMO_MODE) {
+      console.log('Demo mode: Saving brainstorm result for user:', userId);
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('generation_sessions')
@@ -177,6 +212,12 @@ export class SessionService {
    * Get brainstorm results from session
    */
   async getBrainstormResult(userId: string, sessionId: string): Promise<BrainstormResult | null> {
+    // Demo mode - return demo brainstorm result
+    if (DEMO_MODE) {
+      console.log('Demo mode: Getting brainstorm result for user:', userId);
+      return DEMO_BRAINSTORM_RESULT;
+    }
+
     try {
       const session = await this.getSession(userId, sessionId);
       return session?.brainstormData || null;
@@ -189,6 +230,12 @@ export class SessionService {
    * Save builder configuration to session
    */
   async saveBuilderConfig(userId: string, sessionId: string, config: BuilderConfig): Promise<void> {
+    // Demo mode - simulate save
+    if (DEMO_MODE) {
+      console.log('Demo mode: Saving builder config for user:', userId);
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('generation_sessions')
@@ -210,6 +257,21 @@ export class SessionService {
    * Get builder configuration from session
    */
   async getBuilderConfig(userId: string, sessionId: string): Promise<BuilderConfig | null> {
+    // Demo mode - return demo config
+    if (DEMO_MODE) {
+      console.log('Demo mode: Getting builder config for user:', userId);
+      return {
+        topic: DEMO_BRAINSTORM_RESULT.topic,
+        wordCount: 30000,
+        tone: 'professional',
+        audience: 'content creators and marketers',
+        provider: DEMO_BRAINSTORM_RESULT.provider,
+        model: DEMO_BRAINSTORM_RESULT.model,
+        outline: DEMO_BRAINSTORM_RESULT.outline,
+        improveOutline: true
+      };
+    }
+
     try {
       const session = await this.getSession(userId, sessionId);
       return session?.builderConfig || null;
@@ -222,6 +284,12 @@ export class SessionService {
    * Save generation progress to session
    */
   async saveGenerationProgress(userId: string, sessionId: string, progress: GenerationProgress): Promise<void> {
+    // Demo mode - simulate save
+    if (DEMO_MODE) {
+      console.log('Demo mode: Saving generation progress for user:', userId);
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('generation_sessions')
@@ -243,6 +311,12 @@ export class SessionService {
    * Get generation progress from session
    */
   async getGenerationProgress(userId: string, sessionId: string): Promise<GenerationProgress | null> {
+    // Demo mode - return null
+    if (DEMO_MODE) {
+      console.log('Demo mode: Getting generation progress for user:', userId);
+      return null;
+    }
+
     try {
       const session = await this.getSession(userId, sessionId);
       return session?.progress || null;
@@ -255,6 +329,12 @@ export class SessionService {
    * Update session status
    */
   async updateSessionStatus(userId: string, sessionId: string, status: 'active' | 'completed' | 'expired'): Promise<void> {
+    // Demo mode - simulate update
+    if (DEMO_MODE) {
+      console.log('Demo mode: Updating session status for user:', userId);
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('generation_sessions')
@@ -274,6 +354,12 @@ export class SessionService {
    * Clear session data
    */
   async clearSession(userId: string, sessionId: string): Promise<void> {
+    // Demo mode - simulate clear
+    if (DEMO_MODE) {
+      console.log('Demo mode: Clearing session for user:', userId);
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('generation_sessions')
@@ -298,6 +384,12 @@ export class SessionService {
    * Delete expired sessions
    */
   async cleanupExpiredSessions(): Promise<number> {
+    // Demo mode - simulate cleanup
+    if (DEMO_MODE) {
+      console.log('Demo mode: Simulating session cleanup');
+      return 0;
+    }
+
     try {
       const { data, error } = await supabase
         .from('generation_sessions')
@@ -319,6 +411,12 @@ export class SessionService {
    * Extend session expiration
    */
   async extendSession(userId: string, sessionId: string, hours: number = 24): Promise<void> {
+    // Demo mode - simulate extend
+    if (DEMO_MODE) {
+      console.log('Demo mode: Extending session for user:', userId);
+      return;
+    }
+
     try {
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + hours);
@@ -345,12 +443,12 @@ export class SessionService {
   async getOrCreateActiveSession(userId: string): Promise<string> {
     try {
       // Try to get existing active session
-      const activeSession = await this.getActiveSession(userId);
+      const activeSessionId = await this.getActiveSession(userId);
       
-      if (activeSession) {
+      if (activeSessionId) {
         // Extend the session
-        await this.extendSession(userId, activeSession.id);
-        return activeSession.id;
+        await this.extendSession(userId, activeSessionId);
+        return activeSessionId;
       }
 
       // Create new session

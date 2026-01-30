@@ -7,9 +7,13 @@ import { Input } from "~/components/ui/input/input";
 import { Alert, AlertDescription } from "~/components/ui/alert/alert";
 import { AI_PROVIDERS } from "~/data/ai-providers";
 import { apiKeyService, type APIKey } from "~/services/api-key-service";
+import { localAPIKeyService } from "~/services/local-api-key-service";
 import { AuthService } from "~/services/auth-service";
 import { ProtectedRoute } from "~/components/protected-route";
 import styles from "./settings.module.css";
+
+// Use localStorage for testing (set to true to enable)
+const USE_LOCAL_STORAGE = true;
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -44,9 +48,24 @@ export default function Settings() {
   const loadApiKeys = async () => {
     try {
       setLoading(true);
-      const userId = await getUserId();
-      const keys = await apiKeyService.getAllApiKeys(userId);
-      setSavedKeys(keys);
+      
+      if (USE_LOCAL_STORAGE) {
+        // Load from localStorage
+        const localKeys = localAPIKeyService.getAllKeys();
+        const formattedKeys: APIKey[] = localKeys.map(k => ({
+          id: `local-${k.provider}`,
+          provider: k.provider,
+          createdAt: k.createdAt,
+          updatedAt: k.updatedAt
+        }));
+        setSavedKeys(formattedKeys);
+        console.log('✅ Loaded API keys from localStorage:', formattedKeys.length);
+      } else {
+        // Load from database
+        const userId = await getUserId();
+        const keys = await apiKeyService.getAllApiKeys(userId);
+        setSavedKeys(keys);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load API keys");
     } finally {
@@ -66,10 +85,16 @@ export default function Settings() {
       setError(null);
       setSuccess(null);
 
-      const userId = await getUserId();
-      await apiKeyService.saveApiKey(userId, providerId, key);
-
-      setSuccess(`${AI_PROVIDERS.find((p) => p.id === providerId)?.name} API key saved securely`);
+      if (USE_LOCAL_STORAGE) {
+        // Save to localStorage
+        localAPIKeyService.saveApiKey(providerId, key);
+        setSuccess(`${AI_PROVIDERS.find((p) => p.id === providerId)?.name} API key saved to browser storage`);
+      } else {
+        // Save to database
+        const userId = await getUserId();
+        await apiKeyService.saveApiKey(userId, providerId, key);
+        setSuccess(`${AI_PROVIDERS.find((p) => p.id === providerId)?.name} API key saved securely`);
+      }
 
       // Clear the input
       setApiKeys((prev) => ({ ...prev, [providerId]: "" }));
@@ -95,10 +120,17 @@ export default function Settings() {
       setError(null);
       setSuccess(null);
 
-      const userId = await getUserId();
-      await apiKeyService.deleteApiKey(userId, providerId);
+      if (USE_LOCAL_STORAGE) {
+        // Delete from localStorage
+        localAPIKeyService.deleteApiKey(providerId);
+        setSuccess(`${providerName} API key deleted from browser storage`);
+      } else {
+        // Delete from database
+        const userId = await getUserId();
+        await apiKeyService.deleteApiKey(userId, providerId);
+        setSuccess(`${providerName} API key deleted`);
+      }
 
-      setSuccess(`${providerName} API key deleted`);
       setApiKeys((prev) => {
         const updated = { ...prev };
         delete updated[providerId];
@@ -156,11 +188,24 @@ export default function Settings() {
           <div className={styles.alert}>
             <Info className={styles.alertIcon} />
             <div className={styles.alertContent}>
-              <h3 className={styles.alertTitle}>Secure API Key Storage</h3>
+              <h3 className={styles.alertTitle}>
+                {USE_LOCAL_STORAGE ? 'Browser Storage (Testing Mode)' : 'Secure API Key Storage'}
+              </h3>
               <p className={styles.alertText}>
-                Your API keys are encrypted with AES-256-CBC encryption before storage. They are protected by Row Level
-                Security (RLS) policies and never shared. Keys are only used to make requests to the respective AI
-                providers on your behalf. You can remove them at any time.
+                {USE_LOCAL_STORAGE ? (
+                  <>
+                    <strong>⚠️ Testing Mode Active:</strong> API keys are stored in your browser's localStorage for easy testing. 
+                    Keys are NOT encrypted and will be lost if you clear browser data. This is perfect for development and testing.
+                    <br /><br />
+                    <strong>Note:</strong> Keys are stored locally in your browser only and never sent to any server.
+                  </>
+                ) : (
+                  <>
+                    Your API keys are encrypted with AES-256-CBC encryption before storage. They are protected by Row Level
+                    Security (RLS) policies and never shared. Keys are only used to make requests to the respective AI
+                    providers on your behalf. You can remove them at any time.
+                  </>
+                )}
               </p>
             </div>
           </div>

@@ -30,12 +30,25 @@ async function verifyDatabase() {
   console.log('🔍 Verifying Supabase connection...\n');
 
   try {
-    // Test basic connection
+    // Test basic connection with a simple query
     console.log('1. Testing connection...');
-    const { data, error } = await supabase.from('ebooks').select('count', { count: 'exact', head: true });
+    const { data, error } = await supabase
+      .from('api_keys')
+      .select('count', { count: 'exact', head: true });
     
     if (error) {
       console.error('❌ Connection failed:', error.message);
+      
+      // Check if it's a table not found error
+      if (error.message.includes('relation "api_keys" does not exist')) {
+        console.log('\n🔧 Database schema not found. Please run the schema SQL in Supabase:');
+        console.log('1. Go to https://supabase.com/dashboard/project/YOUR_PROJECT_ID/sql');
+        console.log('2. Copy and paste the contents of project/database/schema.sql');
+        console.log('3. Click "Run" to create all tables');
+        console.log('4. Run this script again to verify');
+        return false;
+      }
+      
       return false;
     }
     
@@ -44,7 +57,7 @@ async function verifyDatabase() {
     // Check required tables
     console.log('\n2. Checking database schema...');
     
-    const tables = ['ebooks', 'chapters', 'audiobooks', 'user_profiles'];
+    const tables = ['api_keys', 'ebooks', 'chapters', 'generation_sessions'];
     const tableResults = {};
     
     for (const table of tables) {
@@ -54,7 +67,7 @@ async function verifyDatabase() {
           console.log(`❌ Table '${table}': ${error.message}`);
           tableResults[table] = false;
         } else {
-          console.log(`✅ Table '${table}': Found (${data?.length || 0} rows)`);
+          console.log(`✅ Table '${table}': Found`);
           tableResults[table] = true;
         }
       } catch (err) {
@@ -98,7 +111,7 @@ async function verifyDatabase() {
       console.log('Schema: ❌ Some tables are missing');
       console.log('\nPlease run your database schema SQL in Supabase SQL Editor:');
       console.log('1. Go to https://supabase.com/dashboard/project/YOUR_PROJECT_ID/sql');
-      console.log('2. Paste and run your schema SQL');
+      console.log('2. Paste and run the contents of project/database/schema.sql');
       console.log('3. Run this script again to verify');
     }
 
@@ -106,6 +119,10 @@ async function verifyDatabase() {
 
   } catch (error) {
     console.error('❌ Database verification failed:', error.message);
+    console.log('\nTroubleshooting:');
+    console.log('1. Check your SUPABASE_PROJECT_URL and SUPABASE_API_KEY in .env');
+    console.log('2. Ensure your Supabase project is active');
+    console.log('3. Verify your API key has the correct permissions');
     return false;
   }
 }

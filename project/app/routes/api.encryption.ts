@@ -1,5 +1,4 @@
-import { json } from "react-router";
-import type { ActionFunctionArgs } from "@react-router/node";
+import type { ActionFunctionArgs } from "react-router";
 import { AuthService } from "~/services/auth-service";
 import { encrypt, decrypt } from "~/lib/encryption";
 
@@ -23,8 +22,8 @@ export async function action({ request }: ActionFunctionArgs): Promise<Response>
     // Verify authentication
     const user = await AuthService.getCurrentUser();
     if (!user) {
-      return json<EncryptResponse>(
-        { success: false, error: 'Authentication required' },
+      return Response.json(
+        { success: false, error: 'Authentication required' } as EncryptResponse,
         { status: 401 }
       );
     }
@@ -34,8 +33,8 @@ export async function action({ request }: ActionFunctionArgs): Promise<Response>
     const { action, data } = body;
 
     if (!action || !data) {
-      return json<EncryptResponse>(
-        { success: false, error: 'Missing action or data' },
+      return Response.json(
+        { success: false, error: 'Missing action or data' } as EncryptResponse,
         { status: 400 }
       );
     }
@@ -52,24 +51,24 @@ export async function action({ request }: ActionFunctionArgs): Promise<Response>
         break;
       
       default:
-        return json<EncryptResponse>(
-          { success: false, error: 'Invalid action' },
+        return Response.json(
+          { success: false, error: 'Invalid action' } as EncryptResponse,
           { status: 400 }
         );
     }
 
-    return json<EncryptResponse>({
+    return Response.json({
       success: true,
       result
-    });
+    } as EncryptResponse);
 
   } catch (error) {
     console.error('Encryption API error:', error);
-    return json<EncryptResponse>(
+    return Response.json(
       { 
         success: false, 
         error: error instanceof Error ? error.message : 'Encryption operation failed' 
-      },
+      } as EncryptResponse,
       { status: 500 }
     );
   }
@@ -77,5 +76,5 @@ export async function action({ request }: ActionFunctionArgs): Promise<Response>
 
 // Only allow POST requests
 export async function loader() {
-  return json({ error: 'Method not allowed' }, { status: 405 });
+  return Response.json({ error: 'Method not allowed' }, { status: 405 });
 }

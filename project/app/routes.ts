@@ -11,7 +11,6 @@ export default [
   route("audiobooks", "routes/audiobooks.tsx"),
   route("children-books", "routes/children-books.tsx"),
   route("settings", "routes/settings.tsx"),
-  route("api/keys", "routes/api.keys.ts"),
   route("api/keys/secure", "routes/api.keys.secure.ts"),
   route("api/encryption", "routes/api.encryption.ts"),
 ] satisfies RouteConfig;

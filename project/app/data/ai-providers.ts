@@ -31,19 +31,37 @@ export const AI_PROVIDERS: AIProvider[] = [
   {
     id: "openai",
     name: "OpenAI",
-    description: "GPT-4 and GPT-3.5 models for high-quality content generation",
+    description: "GPT-5.2 and GPT-4 models for high-quality content generation",
     requiresApiKey: true,
     models: [
       {
+        id: "auto",
+        name: "Best Available",
+        description: "Automatically chooses the latest/best model for your API key",
+        bestFor: ["all"],
+      },
+      {
+        id: "gpt-5.2",
+        name: "GPT-5.2 (Latest)",
+        description: "Latest GPT-5.2 with breakthrough performance and reasoning",
+        bestFor: ["long-form", "creative", "technical", "complex-reasoning"],
+      },
+      {
+        id: "gpt-5",
+        name: "GPT-5",
+        description: "Advanced GPT-5 model with superior capabilities",
+        bestFor: ["long-form", "creative", "technical"],
+      },
+      {
         id: "gpt-4-turbo",
         name: "GPT-4 Turbo",
-        description: "Latest GPT-4 with improved performance",
+        description: "Proven GPT-4 Turbo with excellent performance",
         bestFor: ["long-form", "creative", "technical"],
       },
       {
         id: "gpt-4",
         name: "GPT-4",
-        description: "Most capable model for complex writing tasks",
+        description: "Reliable model for complex writing tasks",
         bestFor: ["long-form", "creative", "technical"],
       },
       {
@@ -57,19 +75,37 @@ export const AI_PROVIDERS: AIProvider[] = [
   {
     id: "anthropic",
     name: "Anthropic Claude",
-    description: "Claude models for nuanced, context-aware writing",
+    description: "Claude 4 and Claude 3.5 models for nuanced, context-aware writing",
     requiresApiKey: true,
     models: [
       {
+        id: "auto",
+        name: "Best Available",
+        description: "Automatically chooses the latest Claude model for your API key",
+        bestFor: ["all"],
+      },
+      {
+        id: "claude-4-opus",
+        name: "Claude 4 Opus (Latest)",
+        description: "Latest and most powerful Claude model with exceptional reasoning",
+        bestFor: ["long-form", "creative", "analysis", "complex-reasoning"],
+      },
+      {
+        id: "claude-4-sonnet",
+        name: "Claude 4 Sonnet",
+        description: "Balanced Claude 4 model with great performance",
+        bestFor: ["long-form", "creative", "analysis"],
+      },
+      {
         id: "claude-3-5-sonnet-20241022",
         name: "Claude 3.5 Sonnet",
-        description: "Latest and most capable Claude model",
+        description: "Proven Claude 3.5 model with excellent capabilities",
         bestFor: ["long-form", "creative", "analysis", "coding"],
       },
       {
         id: "claude-3-opus-20240229",
         name: "Claude 3 Opus",
-        description: "Most powerful Claude model for complex tasks",
+        description: "Powerful Claude 3 model for complex tasks",
         bestFor: ["long-form", "creative", "analysis"],
       },
       {
@@ -83,9 +119,27 @@ export const AI_PROVIDERS: AIProvider[] = [
   {
     id: "google",
     name: "Google Gemini",
-    description: "Gemini models for versatile content creation",
+    description: "Gemini 2 and 1.5 models for versatile content creation",
     requiresApiKey: true,
     models: [
+      {
+        id: "auto",
+        name: "Best Available",
+        description: "Automatically chooses the latest Gemini model for your API key",
+        bestFor: ["all"],
+      },
+      {
+        id: "gemini-2-pro",
+        name: "Gemini 2 Pro (Latest)",
+        description: "Latest Gemini 2 with breakthrough multimodal capabilities",
+        bestFor: ["long-form", "technical", "research", "multimodal"],
+      },
+      {
+        id: "gemini-2-flash",
+        name: "Gemini 2 Flash",
+        description: "Fast Gemini 2 model with excellent efficiency",
+        bestFor: ["brainstorming", "quick-generation", "outlines"],
+      },
       {
         id: "gemini-1.5-pro",
         name: "Gemini 1.5 Pro",
@@ -103,20 +157,32 @@ export const AI_PROVIDERS: AIProvider[] = [
   {
     id: "xai",
     name: "xAI Grok",
-    description: "Grok models with real-time knowledge",
+    description: "Grok 3 models with real-time knowledge and reasoning",
     requiresApiKey: true,
     models: [
       {
-        id: "grok-4-latest",
-        name: "Grok 4",
-        description: "Latest Grok model with real-time knowledge",
-        bestFor: ["current-events", "research", "creative"],
+        id: "auto",
+        name: "Best Available",
+        description: "Automatically chooses the latest Grok model for your API key",
+        bestFor: ["all"],
+      },
+      {
+        id: "grok-3",
+        name: "Grok 3 (Latest)",
+        description: "Latest Grok 3 with advanced reasoning and real-time knowledge",
+        bestFor: ["current-events", "research", "creative", "reasoning"],
+      },
+      {
+        id: "grok-2-latest",
+        name: "Grok 2",
+        description: "Proven Grok 2 model with current information",
+        bestFor: ["current-events", "research", "general"],
       },
       {
         id: "grok-beta",
         name: "Grok Beta",
-        description: "Latest Grok model with current information",
-        bestFor: ["current-events", "research", "general"],
+        description: "Beta Grok model with experimental features",
+        bestFor: ["current-events", "research", "creative"],
       },
     ],
   },
@@ -126,6 +192,12 @@ export const AI_PROVIDERS: AIProvider[] = [
     description: "Open-source models via Hugging Face",
     requiresApiKey: true,
     models: [
+      {
+        id: "auto",
+        name: "Best Available",
+        description: "Automatically chooses the best DeepSeek model for your API key",
+        bestFor: ["all"],
+      },
       {
         id: "deepseek-llm-7b-instruct",
         name: "DeepSeek LLM 7B",

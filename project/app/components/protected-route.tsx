@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router";
 import { AuthService, type AuthUser } from "~/services/auth-service";
+import { DEMO_MODE } from "~/lib/demo-mode";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -12,21 +13,38 @@ export function ProtectedRoute({ children, redirectTo = "/login" }: ProtectedRou
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // In demo mode, skip auth check and load immediately
+    if (DEMO_MODE) {
+      AuthService.getCurrentUser().then((currentUser) => {
+        setUser(currentUser);
+        setLoading(false);
+      });
+      return;
+    }
+
     // Check initial auth state
     AuthService.getCurrentUser().then((currentUser) => {
       setUser(currentUser);
       setLoading(false);
-    });
-
-    // Listen for auth state changes
-    const { data: { subscription } } = AuthService.onAuthStateChange((user) => {
-      setUser(user);
+    }).catch((error) => {
+      console.error("Auth error:", error);
       setLoading(false);
     });
 
-    return () => {
-      subscription?.unsubscribe();
-    };
+    // Listen for auth state changes (only in non-demo mode)
+    try {
+      const { data: { subscription } } = AuthService.onAuthStateChange((user) => {
+        setUser(user);
+        setLoading(false);
+      });
+
+      return () => {
+        subscription?.unsubscribe();
+      };
+    } catch (error) {
+      console.error("Auth subscription error:", error);
+      setLoading(false);
+    }
   }, []);
 
   if (loading) {

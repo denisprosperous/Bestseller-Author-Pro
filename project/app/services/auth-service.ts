@@ -1,4 +1,5 @@
 import { supabase } from "~/lib/supabase";
+import { DEMO_MODE, DEMO_USER } from "~/lib/demo-mode";
 import type { User, Session } from "@supabase/supabase-js";
 
 export interface AuthUser {
@@ -19,6 +20,11 @@ export class AuthService {
    * Get the current authenticated user
    */
   static async getCurrentUser(): Promise<AuthUser | null> {
+    // Demo mode - return demo user
+    if (DEMO_MODE) {
+      return DEMO_USER;
+    }
+
     try {
       const { data: { user }, error } = await supabase.auth.getUser();
       
@@ -46,6 +52,16 @@ export class AuthService {
    * Get the current session
    */
   static async getCurrentSession(): Promise<AuthSession | null> {
+    // Demo mode - return demo session
+    if (DEMO_MODE) {
+      return {
+        user: DEMO_USER,
+        access_token: "demo-access-token",
+        refresh_token: "demo-refresh-token",
+        expires_at: Date.now() + 3600000 // 1 hour from now
+      };
+    }
+
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
       
@@ -78,6 +94,14 @@ export class AuthService {
    * Sign in with email and password
    */
   static async signIn(email: string, password: string): Promise<{ user: AuthUser | null; error: string | null }> {
+    // Demo mode - simulate successful login
+    if (DEMO_MODE) {
+      return {
+        user: DEMO_USER,
+        error: null
+      };
+    }
+
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -110,6 +134,14 @@ export class AuthService {
    * Sign up with email and password
    */
   static async signUp(email: string, password: string): Promise<{ user: AuthUser | null; error: string | null }> {
+    // Demo mode - simulate successful signup
+    if (DEMO_MODE) {
+      return {
+        user: DEMO_USER,
+        error: null
+      };
+    }
+
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -142,6 +174,11 @@ export class AuthService {
    * Sign out the current user
    */
   static async signOut(): Promise<{ error: string | null }> {
+    // Demo mode - simulate successful signout
+    if (DEMO_MODE) {
+      return { error: null };
+    }
+
     try {
       const { error } = await supabase.auth.signOut();
       
@@ -176,6 +213,12 @@ export class AuthService {
    * Listen to auth state changes
    */
   static onAuthStateChange(callback: (user: AuthUser | null) => void) {
+    // Demo mode - immediately call with demo user
+    if (DEMO_MODE) {
+      callback(DEMO_USER);
+      return { data: { subscription: null } };
+    }
+
     return supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         callback({
@@ -193,6 +236,11 @@ export class AuthService {
    * Reset password
    */
   static async resetPassword(email: string): Promise<{ error: string | null }> {
+    // Demo mode - simulate successful reset
+    if (DEMO_MODE) {
+      return { error: null };
+    }
+
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
@@ -213,6 +261,11 @@ export class AuthService {
    * Update password
    */
   static async updatePassword(password: string): Promise<{ error: string | null }> {
+    // Demo mode - simulate successful update
+    if (DEMO_MODE) {
+      return { error: null };
+    }
+
     try {
       const { error } = await supabase.auth.updateUser({
         password,

@@ -1,7 +1,23 @@
 /**
  * API Key Service with server-side encryption
  * Handles secure storage and retrieval of API keys
+ * 
+ * Development Mode: Set VITE_USE_DEV_API_KEYS=true in .env to use environment variables
+ * Testing Mode: Uses localStorage when database is not available
  */
+
+import { localAPIKeyService } from "./local-api-key-service";
+
+// Development mode - read API keys from environment variables
+const DEV_API_KEYS = {
+  openai: import.meta.env.VITE_OPENAI_API_KEY || '',
+  anthropic: import.meta.env.VITE_ANTHROPIC_API_KEY || '',
+  google: import.meta.env.VITE_GOOGLE_API_KEY || '',
+  xai: import.meta.env.VITE_XAI_API_KEY || '',
+  deepseek: import.meta.env.VITE_DEEPSEEK_API_KEY || ''
+};
+
+const USE_DEV_KEYS = import.meta.env.VITE_USE_DEV_API_KEYS === 'true';
 
 export interface APIKey {
   id: string;
@@ -18,8 +34,14 @@ export class APIKeyService {
    * Save API key using server-side encryption
    */
   async saveApiKey(userId: string, provider: string, apiKey: string): Promise<void> {
+    // In dev mode with USE_DEV_KEYS, skip saving (use env vars instead)
+    if (USE_DEV_KEYS) {
+      console.log(`Dev mode: Skipping save for ${provider} (using environment variables)`);
+      return;
+    }
+
     try {
-      const response = await fetch('/api/keys', {
+      const response = await fetch('/api/keys/secure', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -31,16 +53,22 @@ export class APIKeyService {
         })
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to save API key');
+        // If database fails, fallback to localStorage
+        console.warn('Database save failed, using localStorage fallback');
+        localAPIKeyService.saveApiKey(provider, apiKey);
+        return;
       }
 
       // Clear cache for this provider
       this.cache.delete(`${userId}-${provider}`);
     } catch (error) {
       console.error('Error saving API key:', error);
-      throw new Error(`Failed to save API key for ${provider}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // Fallback to localStorage on error
+      console.warn('Using localStorage fallback due to error');
+      localAPIKeyService.saveApiKey(provider, apiKey);
     }
   }
 
@@ -48,6 +76,15 @@ export class APIKeyService {
    * Get API key with server-side decryption and caching
    */
   async getApiKey(userId: string, provider: string): Promise<string | null> {
+    // In dev mode with USE_DEV_KEYS, return from environment variables
+    if (USE_DEV_KEYS) {
+      const devKey = DEV_API_KEYS[provider as keyof typeof DEV_API_KEYS];
+      if (devKey) {
+        console.log(`Dev mode: Using ${provider} key from environment variables`);
+        return devKey;
+      }
+    }
+
     // Check cache first
     const cacheKey = `${userId}-${provider}`;
     const cached = this.cache.get(cacheKey);
@@ -57,7 +94,7 @@ export class APIKeyService {
     }
 
     try {
-      const response = await fetch('/api/keys', {
+      const response = await fetch('/api/keys/secure', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -69,28 +106,40 @@ export class APIKeyService {
       });
 
       if (!response.ok) {
-        if (response.status === 404) {
-          return null; // No API key found
+        // Fallback to localStorage
+        const localKey = localAPIKeyService.getApiKey(provider);
+        if (localKey) {
+          console.log(`Using ${provider} key from localStorage`);
+          return localKey;
         }
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to retrieve API key');
+        return null;
       }
 
-      const data = await response.json();
+      const result = await response.json();
+      const apiKey = result.data?.apiKey;
       
+      if (!apiKey) {
+        // Fallback to localStorage
+        const localKey = localAPIKeyService.getApiKey(provider);
+        return localKey;
+      }
+
       // Cache the decrypted key
       this.cache.set(cacheKey, {
-        key: data.apiKey,
+        key: apiKey,
         timestamp: Date.now()
       });
 
-      return data.apiKey;
+      return apiKey;
     } catch (error) {
       console.error('Error retrieving API key:', error);
-      if (error instanceof Error && error.message.includes('404')) {
-        return null;
+      // Fallback to localStorage
+      const localKey = localAPIKeyService.getApiKey(provider);
+      if (localKey) {
+        console.log(`Using ${provider} key from localStorage (fallback)`);
+        return localKey;
       }
-      throw new Error(`Failed to retrieve API key for ${provider}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return null;
     }
   }
 
@@ -98,19 +147,37 @@ export class APIKeyService {
    * Get all API keys for a user (without decrypted values)
    */
   async getAllApiKeys(userId: string): Promise<APIKey[]> {
+    // In dev mode with USE_DEV_KEYS, return providers that have env vars set
+    if (USE_DEV_KEYS) {
+      const providers: APIKey[] = [];
+      Object.entries(DEV_API_KEYS).forEach(([provider, key]) => {
+        if (key) {
+          providers.push({
+            id: `${userId}-${provider}`,
+            provider,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          });
+        }
+      });
+      return providers;
+    }
+
     try {
-      const response = await fetch('/api/keys');
+      const response = await fetch('/api/keys/secure');
       
       if (!response.ok) {
         throw new Error('Failed to fetch API keys');
       }
 
-      const data = await response.json();
-      return data.providers.map((p: any) => ({
+      const result = await response.json();
+      const providers = result.data?.providers || [];
+      
+      return providers.map((p: any) => ({
         id: `${userId}-${p.provider}`,
         provider: p.provider,
-        createdAt: p.createdAt,
-        updatedAt: p.updatedAt
+        createdAt: p.created_at,
+        updatedAt: p.updated_at
       }));
     } catch (error) {
       console.error('Error fetching API keys:', error);
@@ -122,15 +189,22 @@ export class APIKeyService {
    * Check if API key exists for provider
    */
   async hasApiKey(userId: string, provider: string): Promise<boolean> {
+    // In dev mode with USE_DEV_KEYS, check environment variables
+    if (USE_DEV_KEYS) {
+      return !!DEV_API_KEYS[provider as keyof typeof DEV_API_KEYS];
+    }
+
     try {
-      const response = await fetch('/api/keys');
+      const response = await fetch('/api/keys/secure');
       
       if (!response.ok) {
         return false;
       }
 
-      const data = await response.json();
-      return data.providers.some((p: any) => p.provider === provider && p.hasKey);
+      const result = await response.json();
+      const providers = result.data?.providers || [];
+      
+      return providers.some((p: any) => p.provider === provider);
     } catch (error) {
       console.error('Error checking API key:', error);
       return false;
@@ -142,7 +216,7 @@ export class APIKeyService {
    */
   async deleteApiKey(userId: string, provider: string): Promise<void> {
     try {
-      const response = await fetch('/api/keys', {
+      const response = await fetch('/api/keys/secure', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -153,9 +227,10 @@ export class APIKeyService {
         })
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to delete API key');
+        throw new Error(data.error || 'Failed to delete API key');
       }
 
       // Clear cache

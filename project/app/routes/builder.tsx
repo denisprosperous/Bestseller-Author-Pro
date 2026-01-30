@@ -147,6 +147,7 @@ export default function Builder() {
 
     try {
       const userId = await getUserId();
+      
       // Save builder configuration to session
       const builderConfig = {
         topic,
@@ -162,23 +163,47 @@ export default function Builder() {
 
       await sessionService.saveBuilderConfig(userId, sessionId, builderConfig);
 
-      // Get API key for the selected provider
+      // Get API key from localStorage
       let apiKey = '';
       if (provider !== 'auto') {
-        apiKey = await apiKeyService.getApiKey(userId, provider) || '';
+        // Get key for specific provider
+        try {
+          const stored = localStorage.getItem('bestseller_api_keys');
+          if (stored) {
+            const keys = JSON.parse(stored);
+            const keyData = keys.find((k: any) => k.provider === provider);
+            if (keyData) {
+              apiKey = keyData.key;
+              console.log(`✅ Using ${provider} key from localStorage`);
+            }
+          }
+        } catch (error) {
+          console.error('Error reading API key from localStorage:', error);
+        }
+        
         if (!apiKey) {
           throw new Error(`No API key found for ${selectedProvider?.name}. Please add your API key in Settings.`);
         }
       } else {
         // For auto mode, get any available API key
         const providers = ['openai', 'anthropic', 'xai', 'google', 'deepseek'];
-        for (const p of providers) {
-          const key = await apiKeyService.getApiKey(userId, p);
-          if (key) {
-            apiKey = key;
-            break;
+        try {
+          const stored = localStorage.getItem('bestseller_api_keys');
+          if (stored) {
+            const keys = JSON.parse(stored);
+            for (const p of providers) {
+              const keyData = keys.find((k: any) => k.provider === p);
+              if (keyData) {
+                apiKey = keyData.key;
+                console.log(`✅ Using ${p} key from localStorage (auto mode)`);
+                break;
+              }
+            }
           }
+        } catch (error) {
+          console.error('Error reading API keys from localStorage:', error);
         }
+        
         if (!apiKey) {
           throw new Error('No API keys found. Please add at least one API key in Settings to use auto mode.');
         }
@@ -289,12 +314,17 @@ export default function Builder() {
       setError(errorMessage);
       
       // Save error state to session
-      await sessionService.saveGenerationProgress(userId, sessionId, {
-        phase: 'generating',
-        percentage: 0,
-        message: `Error: ${errorMessage}`,
-        startedAt: new Date().toISOString()
-      });
+      try {
+        const userId = await getUserId();
+        await sessionService.saveGenerationProgress(userId, sessionId, {
+          phase: 'generating',
+          percentage: 0,
+          message: `Error: ${errorMessage}`,
+          startedAt: new Date().toISOString()
+        });
+      } catch (sessionError) {
+        console.error('Failed to save error state:', sessionError);
+      }
 
       setGenerating(false);
       setProgress(0);
@@ -580,6 +610,7 @@ export default function Builder() {
             </p>
           </div>
         )}
+        </div>
       </div>
     </ProtectedRoute>
   );
