@@ -3,6 +3,12 @@
   "outputDirectory": "build/client",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
