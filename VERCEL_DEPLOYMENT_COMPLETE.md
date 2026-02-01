@@ -34,24 +34,24 @@ API_BASE_URL=https://shzfuasxqqflrfiiwtpw.supabase.co
 ### 🟡 HIGH PRIORITY (AI Providers - at least one required)
 
 ```bash
-# Text Generation
-OPENAI_API_KEY=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
-ANTHROPIC_API_KEY=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
-GOOGLE_AI_API_KEY=AIzaSyC3Q2MnUycskaeUuDrJhxpMHr8WjuYId-k
-XAI_API_KEY=xai-UotCvfTnPNUwqwvuVK8Z41mnAJyQxemSQ1u3Uqe6hRZOyzcgMffMH2kd0CKZNikrOF8H9k4WNfMvS5TN
+# Text Generation (Copy from your .env file)
+OPENAI_API_KEY=your-openai-api-key-here
+ANTHROPIC_API_KEY=your-anthropic-api-key-here
+GOOGLE_AI_API_KEY=your-google-api-key-here
+XAI_API_KEY=your-xai-api-key-here
 ```
 
 ### 🟢 OPTIONAL (Enhanced Features)
 
 ```bash
-# Image Generation
-HUGGINGFACE_API_KEY=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
-EDEN_AI_API_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNTg0YWViNjYtMDk2My00ZWU3LWJhZTEtMjdkYWUxNzFhZDFiIiwidHlwZSI6ImFwaV90b2tlbiIsIm5hbWUiOiJCZXN0c2VsbGVyLUF1dGhvci1Qcm8iLCJpc19jdXN0b20iOnRydWV9.hFBzov3b_isFx_ToACwaYHdD2e6_J-9sTdVXvyQPyCY
+# Image Generation (Copy from your .env file)
+HUGGINGFACE_API_KEY=your-huggingface-api-key-here
+EDEN_AI_API_KEY=your-eden-ai-api-key-here
 GOOGLE_CLOUD_PROJECT_ID=bestseller-author-pro
 
-# Voice/TTS
-ELEVENLABS_API_KEY=sk_8277fc5068106633e9253fa3e73d2f243ec4d0e2196ea560
-GOOGLE_CLOUD_TTS_API_KEY=AIzaSyC3Q2MnUycskaeUuDrJhxpMHr8WjuYId-k
+# Voice/TTS (Copy from your .env file)
+ELEVENLABS_API_KEY=your-elevenlabs-api-key-here
+GOOGLE_CLOUD_TTS_API_KEY=your-google-tts-api-key-here
 ```
 
 ---

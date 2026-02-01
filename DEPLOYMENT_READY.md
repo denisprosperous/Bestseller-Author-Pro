@@ -38,6 +38,8 @@ Go to: https://vercel.com/proprepero1921s-projects/bestseller-author-pro/setting
 
 **Add these variables** (copy from `project/.env`):
 
+**⚠️ IMPORTANT**: Copy the actual values from your `project/.env` file. The placeholders below are just examples.
+
 **CRITICAL** (Required):
 ```
 SUPABASE_PROJECT_URL
