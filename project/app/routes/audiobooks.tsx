@@ -83,6 +83,25 @@ export default function Audiobooks() {
 
   const audioRef = React.useRef<HTMLAudioElement>(null);
 
+  // Helper function to get API key from localStorage
+  const getApiKeyFromLocalStorage = (provider: string): string | null => {
+    try {
+      const stored = localStorage.getItem('bestseller_api_keys');
+      if (stored) {
+        const keys = JSON.parse(stored);
+        const keyData = keys.find((k: any) => k.provider === provider);
+        if (keyData) {
+          console.log(`✅ Using ${provider} API key from localStorage`);
+          return keyData.key;
+        }
+      }
+      console.warn(`⚠️ No API key found for ${provider} in localStorage`);
+    } catch (error) {
+      console.error('Error reading API key from localStorage:', error);
+    }
+    return null;
+  };
+
   // Helper function to get authenticated user ID
   const getUserId = async (): Promise<string> => {
     const userId = await AuthService.getUserId();
@@ -344,8 +363,8 @@ export default function Audiobooks() {
     try {
       const userId = await getUserId();
       
-      // Get API key for TTS provider
-      const apiKey = await apiKeyService.getApiKey(userId, selectedProvider);
+      // Get API key for TTS provider from localStorage
+      const apiKey = getApiKeyFromLocalStorage(selectedProvider);
       if (!apiKey) {
         throw new Error(`No API key found for ${selectedProvider}. Please add your API key in Settings.`);
       }

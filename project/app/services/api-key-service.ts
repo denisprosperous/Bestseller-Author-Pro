@@ -2,8 +2,10 @@
  * API Key Service with server-side encryption
  * Handles secure storage and retrieval of API keys
  * 
- * Development Mode: Set VITE_USE_DEV_API_KEYS=true in .env to use environment variables
- * Testing Mode: Uses localStorage when database is not available
+ * Priority Order:
+ * 1. Environment variables (if VITE_USE_DEV_API_KEYS=true)
+ * 2. localStorage (browser storage for testing)
+ * 3. Supabase database (production, encrypted)
  */
 
 import { localAPIKeyService } from "./local-api-key-service";
@@ -19,6 +21,9 @@ const DEV_API_KEYS = {
 
 const USE_DEV_KEYS = import.meta.env.VITE_USE_DEV_API_KEYS === 'true';
 
+// Always use database as primary storage for production
+const USE_LOCALSTORAGE_PRIMARY = false;
+
 export interface APIKey {
   id: string;
   provider: string;
@@ -31,7 +36,7 @@ export class APIKeyService {
   private cacheTimeout = 5 * 60 * 1000; // 5 minutes
 
   /**
-   * Save API key using server-side encryption
+   * Save API key using localStorage (primary) or server-side encryption (fallback)
    */
   async saveApiKey(userId: string, provider: string, apiKey: string): Promise<void> {
     // In dev mode with USE_DEV_KEYS, skip saving (use env vars instead)
@@ -40,6 +45,14 @@ export class APIKeyService {
       return;
     }
 
+    // Primary: Save to localStorage (works immediately, no server needed)
+    if (USE_LOCALSTORAGE_PRIMARY) {
+      localAPIKeyService.saveApiKey(provider, apiKey);
+      console.log(`✅ API key saved to localStorage for ${provider}`);
+      return;
+    }
+
+    // Fallback: Try database, then localStorage
     try {
       const response = await fetch('/api/keys/secure', {
         method: 'POST',
@@ -53,27 +66,21 @@ export class APIKeyService {
         })
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        // If database fails, fallback to localStorage
-        console.warn('Database save failed, using localStorage fallback');
-        localAPIKeyService.saveApiKey(provider, apiKey);
-        return;
+        throw new Error('Database save failed');
       }
 
       // Clear cache for this provider
       this.cache.delete(`${userId}-${provider}`);
+      console.log(`✅ API key saved to database for ${provider}`);
     } catch (error) {
-      console.error('Error saving API key:', error);
-      // Fallback to localStorage on error
-      console.warn('Using localStorage fallback due to error');
+      console.warn('Database save failed, using localStorage fallback');
       localAPIKeyService.saveApiKey(provider, apiKey);
     }
   }
 
   /**
-   * Get API key with server-side decryption and caching
+   * Get API key with localStorage (primary), cache, or server-side decryption
    */
   async getApiKey(userId: string, provider: string): Promise<string | null> {
     // In dev mode with USE_DEV_KEYS, return from environment variables
@@ -85,7 +92,15 @@ export class APIKeyService {
       }
     }
 
-    // Check cache first
+    // Primary: Check localStorage first (fastest, most reliable)
+    if (USE_LOCALSTORAGE_PRIMARY) {
+      const localKey = localAPIKeyService.getApiKey(provider);
+      if (localKey) {
+        return localKey;
+      }
+    }
+
+    // Check cache
     const cacheKey = `${userId}-${provider}`;
     const cached = this.cache.get(cacheKey);
     
@@ -93,6 +108,7 @@ export class APIKeyService {
       return cached.key;
     }
 
+    // Fallback: Try database
     try {
       const response = await fetch('/api/keys/secure', {
         method: 'POST',
@@ -106,45 +122,29 @@ export class APIKeyService {
       });
 
       if (!response.ok) {
-        // Fallback to localStorage
-        const localKey = localAPIKeyService.getApiKey(provider);
-        if (localKey) {
-          console.log(`Using ${provider} key from localStorage`);
-          return localKey;
-        }
         return null;
       }
 
       const result = await response.json();
       const apiKey = result.data?.apiKey;
       
-      if (!apiKey) {
-        // Fallback to localStorage
-        const localKey = localAPIKeyService.getApiKey(provider);
-        return localKey;
+      if (apiKey) {
+        // Cache the decrypted key
+        this.cache.set(cacheKey, {
+          key: apiKey,
+          timestamp: Date.now()
+        });
+        return apiKey;
       }
-
-      // Cache the decrypted key
-      this.cache.set(cacheKey, {
-        key: apiKey,
-        timestamp: Date.now()
-      });
-
-      return apiKey;
     } catch (error) {
-      console.error('Error retrieving API key:', error);
-      // Fallback to localStorage
-      const localKey = localAPIKeyService.getApiKey(provider);
-      if (localKey) {
-        console.log(`Using ${provider} key from localStorage (fallback)`);
-        return localKey;
-      }
-      return null;
+      console.error('Error retrieving API key from database:', error);
     }
+
+    return null;
   }
 
   /**
-   * Get all API keys for a user (without decrypted values)
+   * Get all API keys for a user (from localStorage or database)
    */
   async getAllApiKeys(userId: string): Promise<APIKey[]> {
     // In dev mode with USE_DEV_KEYS, return providers that have env vars set
@@ -163,11 +163,30 @@ export class APIKeyService {
       return providers;
     }
 
+    // Primary: Get from localStorage
+    if (USE_LOCALSTORAGE_PRIMARY) {
+      const localKeys = localAPIKeyService.getAllKeys();
+      return localKeys.map(k => ({
+        id: `${userId}-${k.provider}`,
+        provider: k.provider,
+        createdAt: k.createdAt,
+        updatedAt: k.updatedAt
+      }));
+    }
+
+    // Fallback: Try database
     try {
       const response = await fetch('/api/keys/secure');
       
       if (!response.ok) {
-        throw new Error('Failed to fetch API keys');
+        // Fallback to localStorage
+        const localKeys = localAPIKeyService.getAllKeys();
+        return localKeys.map(k => ({
+          id: `${userId}-${k.provider}`,
+          provider: k.provider,
+          createdAt: k.createdAt,
+          updatedAt: k.updatedAt
+        }));
       }
 
       const result = await response.json();
@@ -181,12 +200,19 @@ export class APIKeyService {
       }));
     } catch (error) {
       console.error('Error fetching API keys:', error);
-      return [];
+      // Fallback to localStorage
+      const localKeys = localAPIKeyService.getAllKeys();
+      return localKeys.map(k => ({
+        id: `${userId}-${k.provider}`,
+        provider: k.provider,
+        createdAt: k.createdAt,
+        updatedAt: k.updatedAt
+      }));
     }
   }
 
   /**
-   * Check if API key exists for provider
+   * Check if API key exists for provider (localStorage or database)
    */
   async hasApiKey(userId: string, provider: string): Promise<boolean> {
     // In dev mode with USE_DEV_KEYS, check environment variables
@@ -194,11 +220,17 @@ export class APIKeyService {
       return !!DEV_API_KEYS[provider as keyof typeof DEV_API_KEYS];
     }
 
+    // Primary: Check localStorage
+    if (USE_LOCALSTORAGE_PRIMARY) {
+      return localAPIKeyService.hasApiKey(provider);
+    }
+
+    // Fallback: Check database
     try {
       const response = await fetch('/api/keys/secure');
       
       if (!response.ok) {
-        return false;
+        return localAPIKeyService.hasApiKey(provider);
       }
 
       const result = await response.json();
@@ -207,7 +239,7 @@ export class APIKeyService {
       return providers.some((p: any) => p.provider === provider);
     } catch (error) {
       console.error('Error checking API key:', error);
-      return false;
+      return localAPIKeyService.hasApiKey(provider);
     }
   }
 

@@ -1,19 +1,20 @@
 /**
  * Demo Mode Configuration
  * 
- * This enables the app to work without a fully configured database
- * for testing and demonstration purposes.
+ * PRODUCTION MODE: Demo mode is permanently disabled.
+ * All demo exports are kept for backward compatibility but should not be used.
  */
 
-export const DEMO_MODE = true;
+export const DEMO_MODE = false as const;
 
+// Deprecated: Do not use in production
 export const DEMO_USER = {
   id: "demo-user-123",
   email: "demo@example.com",
   created_at: new Date().toISOString()
 };
 
-// Mock data for demonstration
+// Deprecated: Do not use in production
 export const DEMO_EBOOK = {
   id: "demo-ebook-1",
   title: "The Complete Guide to AI-Powered Content Creation",

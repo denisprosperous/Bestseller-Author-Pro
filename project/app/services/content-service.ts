@@ -1,5 +1,4 @@
 import { supabase } from "~/lib/supabase";
-import { DEMO_MODE, DEMO_EBOOK } from "~/lib/demo-mode";
 
 export interface EbookMetadata {
   wordCount: number;
@@ -103,12 +102,6 @@ export class ContentService {
    * Save a new ebook to the database
    */
   async saveEbook(userId: string, ebook: GeneratedEbook): Promise<string> {
-    // Demo mode - return demo ebook ID
-    if (DEMO_MODE) {
-      console.log('Demo mode: Simulating ebook save for user:', userId);
-      return DEMO_EBOOK.id;
-    }
-
     try {
       // Insert ebook record
       const { data: ebookData, error: ebookError } = await supabase
@@ -167,12 +160,6 @@ export class ContentService {
    * Create a new ebook record (without chapters)
    */
   async createEbook(userId: string, params: CreateEbookParams): Promise<string> {
-    // Demo mode - return demo ebook ID
-    if (DEMO_MODE) {
-      console.log('Demo mode: Simulating ebook creation for user:', userId);
-      return DEMO_EBOOK.id;
-    }
-
     try {
       const { data, error } = await supabase
         .from('ebooks')
@@ -207,12 +194,6 @@ export class ContentService {
    * Get a specific ebook with all chapters
    */
   async getEbook(userId: string, ebookId: string): Promise<GeneratedEbook | null> {
-    // Demo mode - return demo ebook
-    if (DEMO_MODE) {
-      console.log('Demo mode: Returning demo ebook for user:', userId);
-      return DEMO_EBOOK;
-    }
-
     try {
       // Get ebook data
       const { data: ebookData, error: ebookError } = await supabase
@@ -278,24 +259,6 @@ export class ContentService {
    * Get all ebooks for a user (summary view)
    */
   async getUserEbooks(userId: string): Promise<EbookSummary[]> {
-    // Demo mode - return demo ebook summary
-    if (DEMO_MODE) {
-      console.log('Demo mode: Returning demo ebook summaries for user:', userId);
-      return [{
-        id: DEMO_EBOOK.id,
-        title: DEMO_EBOOK.title,
-        subtitle: DEMO_EBOOK.subtitle,
-        topic: DEMO_EBOOK.topic,
-        wordCount: DEMO_EBOOK.metadata.wordCount,
-        chapterCount: DEMO_EBOOK.metadata.chapterCount,
-        status: DEMO_EBOOK.status,
-        aiProvider: DEMO_EBOOK.metadata.aiProvider,
-        aiModel: DEMO_EBOOK.metadata.aiModel,
-        createdAt: DEMO_EBOOK.metadata.createdAt,
-        updatedAt: DEMO_EBOOK.metadata.updatedAt
-      }];
-    }
-
     try {
       const { data, error } = await supabase
         .from('ebooks')
@@ -341,12 +304,6 @@ export class ContentService {
    * Update an ebook
    */
   async updateEbook(userId: string, ebookId: string, updates: Partial<GeneratedEbook>): Promise<void> {
-    // Demo mode - simulate update
-    if (DEMO_MODE) {
-      console.log('Demo mode: Simulating ebook update for user:', userId);
-      return;
-    }
-
     try {
       const updateData: any = {};
       
@@ -383,12 +340,6 @@ export class ContentService {
    * Add or update chapters for an ebook
    */
   async saveChapters(userId: string, ebookId: string, chapters: GeneratedChapter[]): Promise<void> {
-    // Demo mode - simulate save
-    if (DEMO_MODE) {
-      console.log('Demo mode: Simulating chapters save for user:', userId);
-      return;
-    }
-
     try {
       // Verify ebook ownership
       const { data: ebook, error: ebookError } = await supabase
@@ -454,12 +405,6 @@ export class ContentService {
    * Delete an ebook and all its chapters
    */
   async deleteEbook(userId: string, ebookId: string): Promise<void> {
-    // Demo mode - simulate delete
-    if (DEMO_MODE) {
-      console.log('Demo mode: Simulating ebook delete for user:', userId);
-      return;
-    }
-
     try {
       const { error } = await supabase
         .from('ebooks')
@@ -481,12 +426,6 @@ export class ContentService {
    * Update ebook status
    */
   async updateStatus(userId: string, ebookId: string, status: 'draft' | 'generating' | 'completed' | 'error'): Promise<void> {
-    // Demo mode - simulate status update
-    if (DEMO_MODE) {
-      console.log('Demo mode: Simulating status update for user:', userId);
-      return;
-    }
-
     try {
       const { error } = await supabase
         .from('ebooks')
@@ -508,12 +447,6 @@ export class ContentService {
    * Save a children's book to the database
    */
   async saveChildrensBook(userId: string, book: Omit<ChildrensBook, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
-    // Demo mode - return demo ID
-    if (DEMO_MODE) {
-      console.log('Demo mode: Simulating children\'s book save for user:', userId);
-      return 'demo-childrens-book-1';
-    }
-
     // Real implementation would go here
     throw new Error('Children\'s books not yet implemented in production mode');
   }
@@ -522,12 +455,6 @@ export class ContentService {
    * Get a children's book with all characters and pages
    */
   async getChildrensBook(userId: string, bookId: string): Promise<ChildrensBook | null> {
-    // Demo mode - return null for now
-    if (DEMO_MODE) {
-      console.log('Demo mode: Children\'s book not implemented yet');
-      return null;
-    }
-
     // Real implementation would go here
     throw new Error('Children\'s books not yet implemented in production mode');
   }
@@ -536,12 +463,6 @@ export class ContentService {
    * Get all children's books for a user
    */
   async getUserChildrensBooks(userId: string): Promise<Omit<ChildrensBook, 'characters' | 'pages'>[]> {
-    // Demo mode - return empty array
-    if (DEMO_MODE) {
-      console.log('Demo mode: Returning empty children\'s books list');
-      return [];
-    }
-
     // Real implementation would go here
     throw new Error('Children\'s books not yet implemented in production mode');
   }
@@ -550,12 +471,6 @@ export class ContentService {
    * Update a children's book
    */
   async updateChildrensBook(userId: string, bookId: string, updates: Partial<ChildrensBook>): Promise<void> {
-    // Demo mode - simulate update
-    if (DEMO_MODE) {
-      console.log('Demo mode: Simulating children\'s book update');
-      return;
-    }
-
     // Real implementation would go here
     throw new Error('Children\'s books not yet implemented in production mode');
   }
@@ -564,12 +479,6 @@ export class ContentService {
    * Delete a children's book and all its characters and pages
    */
   async deleteChildrensBook(userId: string, bookId: string): Promise<void> {
-    // Demo mode - simulate delete
-    if (DEMO_MODE) {
-      console.log('Demo mode: Simulating children\'s book delete');
-      return;
-    }
-
     // Real implementation would go here
     throw new Error('Children\'s books not yet implemented in production mode');
   }

@@ -1,51 +1,33 @@
 import { createClient } from "@supabase/supabase-js";
-import { DEMO_MODE } from "./demo-mode";
 
 // Supabase configuration - use import.meta.env for Vite
-// In demo mode, use placeholder values to avoid errors
-const supabaseUrl = DEMO_MODE 
-  ? "https://placeholder.supabase.co" 
-  : (import.meta.env.VITE_SUPABASE_PROJECT_URL || "https://placeholder.supabase.co");
+// Try both VITE_ prefixed and non-prefixed versions
+const supabaseUrl = 
+  import.meta.env.VITE_SUPABASE_PROJECT_URL || 
+  import.meta.env.SUPABASE_PROJECT_URL ||
+  "https://shzfuasxqqflrfiiwtpw.supabase.co"; // Fallback to known value
 
-const supabaseKey = DEMO_MODE 
-  ? "placeholder-key" 
-  : (import.meta.env.VITE_SUPABASE_API_KEY || "placeholder-key");
+const supabaseKey = 
+  import.meta.env.VITE_SUPABASE_API_KEY || 
+  import.meta.env.SUPABASE_API_KEY ||
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNoemZ1YXN4cXFmbHJmaWl3dHB3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc5NzE5NzQsImV4cCI6MjA1MzU0Nzk3NH0.uIWafl14qsPPffW5dOLBHQ_ObSLTB7V"; // Fallback to known value
 
-// Allow placeholder values for development/testing
-const isPlaceholder = supabaseUrl?.includes('placeholder') || supabaseKey?.includes('placeholder') || DEMO_MODE;
+// Log configuration status
+console.log('✅ Supabase: Connected to', supabaseUrl);
 
-// Only throw error in production mode when not using placeholders
-if (!DEMO_MODE && (!supabaseUrl || !supabaseKey || isPlaceholder)) {
-  console.warn(`
-    Missing Supabase environment variables!
-    
-    Please set up your real Supabase project:
-    1. Go to https://supabase.com/dashboard
-    2. Create a new project
-    3. Get your Project URL and API Key from Settings > API
-    4. Add them to your .env file:
-       VITE_SUPABASE_PROJECT_URL=https://your-project-id.supabase.co
-       VITE_SUPABASE_API_KEY=your-anon-key-here
-       
-    Running in DEMO MODE for now.
-  `);
-}
-
-// Create client with placeholder handling
+// Create client
 export const supabase = createClient(
   supabaseUrl, 
   supabaseKey,
   {
     auth: {
-      // Disable auth persistence for placeholder/demo mode
-      persistSession: !isPlaceholder,
-      autoRefreshToken: !isPlaceholder,
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
     }
   }
 );
-
-// Export placeholder status for conditional features
-export const isUsingPlaceholders = isPlaceholder;
 
 export interface Database {
   public: {

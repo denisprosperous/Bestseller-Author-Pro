@@ -37,6 +37,7 @@ export class AIService {
     if (temperature <= 0.3) {
       const cached = aiCacheService.getCachedAIResponse(provider, model, prompt);
       if (cached) {
+        console.log(`✅ Cache hit for ${provider}/${model}`);
         return {
           content: cached,
           provider,
@@ -48,37 +49,7 @@ export class AIService {
 
     // Handle auto-selection with fallback
     if (provider === "auto") {
-      const preferredOrder = ["openai", "anthropic", "xai", "google", "deepseek"];
-      let lastError: Error | null = null;
-
-      for (const p of preferredOrder) {
-        try {
-          // Check if we have a valid API key for this provider
-          if (!this.validateApiKey(p, apiKey)) {
-            continue; // Skip providers without valid keys
-          }
-
-          provider = p;
-          model = await this.getBestAvailableModel(p, apiKey);
-          
-          // Try to generate content with this provider
-          const response = await this.callProvider(provider, model, prompt, maxTokens, temperature, apiKey);
-          
-          // Cache successful response
-          if (temperature <= 0.3) {
-            aiCacheService.cacheAIResponse(provider, model, prompt, response.content, response.tokensUsed);
-          }
-          
-          return response;
-        } catch (error) {
-          lastError = error instanceof Error ? error : new Error('Unknown error');
-          console.warn(`Provider ${p} failed, trying next:`, lastError.message);
-          continue;
-        }
-      }
-
-      // If all providers failed
-      throw new Error(`All AI providers failed. Last error: ${lastError?.message || 'Unknown error'}`);
+      return await this.generateWithFallback(prompt, maxTokens, temperature, apiKey);
     }
 
     // Auto-select model if needed - use best available model
@@ -92,8 +63,8 @@ export class AIService {
       throw new Error(validationError);
     }
 
-    // Call specific provider
-    const response = await this.callProvider(provider, model, prompt, maxTokens, temperature, apiKey);
+    // Call specific provider with retry logic
+    const response = await this.callProviderWithRetry(provider, model, prompt, maxTokens, temperature, apiKey);
     
     // Cache successful response (only for deterministic requests)
     if (temperature <= 0.3) {
@@ -101,6 +72,185 @@ export class AIService {
     }
     
     return response;
+  }
+
+  /**
+   * Generate content with automatic provider fallback
+   * Tries providers in preference order, skipping those without valid API keys
+   */
+  private async generateWithFallback(
+    prompt: string,
+    maxTokens: number,
+    temperature: number,
+    apiKey: string
+  ): Promise<AIResponse> {
+    const preferredOrder = ["openai", "anthropic", "xai", "google", "deepseek"];
+    const errors: Array<{ provider: string; error: string; isTransient: boolean }> = [];
+
+    console.log('🔄 Starting auto-provider selection with fallback...');
+
+    for (const provider of preferredOrder) {
+      try {
+        // Check if we have a valid API key for this provider
+        const hasValidKey = await this.checkProviderAvailability(provider, apiKey);
+        if (!hasValidKey) {
+          console.log(`⏭️  Skipping ${provider}: No valid API key`);
+          errors.push({
+            provider,
+            error: 'No valid API key configured',
+            isTransient: false
+          });
+          continue;
+        }
+
+        console.log(`🔄 Trying provider: ${provider}`);
+        
+        // Get best available model for this provider
+        const model = await this.getBestAvailableModel(provider, apiKey);
+        
+        // Try to generate content with retry logic
+        const response = await this.callProviderWithRetry(provider, model, prompt, maxTokens, temperature, apiKey);
+        
+        console.log(`✅ Successfully generated content using ${provider}/${model}`);
+        
+        // Cache successful response
+        if (temperature <= 0.3) {
+          aiCacheService.cacheAIResponse(provider, model, prompt, response.content, response.tokensUsed);
+        }
+        
+        return response;
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const isTransient = this.isTransientError(errorMessage);
+        
+        console.warn(`❌ Provider ${provider} failed: ${errorMessage} (transient: ${isTransient})`);
+        
+        errors.push({
+          provider,
+          error: errorMessage,
+          isTransient
+        });
+        
+        // Continue to next provider
+        continue;
+      }
+    }
+
+    // If all providers failed, provide detailed error information
+    const permanentFailures = errors.filter(e => !e.isTransient);
+    const transientFailures = errors.filter(e => e.isTransient);
+    
+    let errorMessage = 'All AI providers failed. ';
+    
+    if (permanentFailures.length > 0) {
+      errorMessage += `Permanent failures: ${permanentFailures.map(e => `${e.provider} (${e.error})`).join(', ')}. `;
+    }
+    
+    if (transientFailures.length > 0) {
+      errorMessage += `Transient failures: ${transientFailures.map(e => `${e.provider} (${e.error})`).join(', ')}. `;
+      errorMessage += 'Please try again in a few moments.';
+    } else {
+      errorMessage += 'Please check your API keys in Settings.';
+    }
+    
+    throw new Error(errorMessage);
+  }
+
+  /**
+   * Call provider with exponential backoff retry logic for transient failures
+   */
+  private async callProviderWithRetry(
+    provider: string,
+    model: string,
+    prompt: string,
+    maxTokens: number,
+    temperature: number,
+    apiKey: string,
+    maxRetries: number = 3
+  ): Promise<AIResponse> {
+    let lastError: Error | null = null;
+    
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        if (attempt > 0) {
+          // Exponential backoff: 1s, 2s, 4s
+          const delayMs = Math.pow(2, attempt) * 1000;
+          console.log(`⏳ Retry attempt ${attempt + 1}/${maxRetries} for ${provider} after ${delayMs}ms delay`);
+          await this.delay(delayMs);
+        }
+        
+        return await this.callProvider(provider, model, prompt, maxTokens, temperature, apiKey);
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('Unknown error');
+        
+        // Check if error is transient (worth retrying)
+        if (!this.isTransientError(lastError.message)) {
+          // Permanent error, don't retry
+          throw lastError;
+        }
+        
+        // Transient error, continue to next retry
+        console.warn(`⚠️  Transient error on attempt ${attempt + 1}: ${lastError.message}`);
+      }
+    }
+    
+    // All retries exhausted
+    throw new Error(`Failed after ${maxRetries} retries: ${lastError?.message || 'Unknown error'}`);
+  }
+
+  /**
+   * Check if a provider is available (has valid API key)
+   */
+  private async checkProviderAvailability(provider: string, apiKey: string): Promise<boolean> {
+    // For auto mode, we need to check if the API key exists in localStorage
+    // Since we're in the browser, we can use the localAPIKeyService
+    try {
+      // Import the service dynamically to avoid circular dependencies
+      const { localAPIKeyService } = await import('~/services/local-api-key-service');
+      const providerKey = localAPIKeyService.getApiKey(provider);
+      
+      if (!providerKey) {
+        return false;
+      }
+      
+      return this.validateApiKey(provider, providerKey);
+    } catch (error) {
+      console.warn(`Failed to check availability for ${provider}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Determine if an error is transient (worth retrying)
+   */
+  private isTransientError(errorMessage: string): boolean {
+    const transientPatterns = [
+      'rate limit',
+      'rate_limit',
+      '429',
+      'timeout',
+      'timed out',
+      'network',
+      'ECONNRESET',
+      'ETIMEDOUT',
+      'ENOTFOUND',
+      'fetch failed',
+      'service unavailable',
+      '503',
+      'temporarily unavailable',
+      'overloaded',
+      'too many requests'
+    ];
+    
+    const lowerMessage = errorMessage.toLowerCase();
+    return transientPatterns.some(pattern => lowerMessage.includes(pattern.toLowerCase()));
+  }
+
+  /**
+   * Delay helper for exponential backoff
+   */
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   /**
@@ -743,32 +893,20 @@ Provide the enhanced outline:`;
   }
 
   /**
-   * Generate a chapter using AI
-   */
-  async generateChapter(
-    chapterTitle: string,
-    sections: string[],
-    context: string,
-    provider: string,
-    model: string,
-    apiKey: string,
-  ): Promise<string> {
-    const prompt = `Write a detailed chapter titled "${chapterTitle}" covering these sections: ${sections.join(", ")}. Context: ${context}`;
-    const response = await this.generateContent({ provider, model, prompt, apiKey });
-    return response.content;
-  }
-
-  /**
    * Generate brainstorming suggestions with real AI and caching
+   * Supports auto-provider fallback
    */
   async brainstorm(topic: string, provider: string, model: string, apiKey: string): Promise<{ titles: string[]; outline: string }> {
-    if (!this.validateApiKey(provider, apiKey)) {
+    // For auto provider, apiKey is not used (we'll fetch from localStorage)
+    if (provider !== "auto" && !this.validateApiKey(provider, apiKey)) {
       throw new Error(`Invalid API key for ${provider}. Please check your API key in settings.`);
     }
 
-    // Check cache first
-    const cached = aiCacheService.getCachedBrainstorm(topic, provider);
+    // Check cache first (use provider-agnostic cache for auto mode)
+    const cacheKey = provider === "auto" ? "auto" : provider;
+    const cached = aiCacheService.getCachedBrainstorm(topic, cacheKey);
     if (cached) {
+      console.log(`✅ Cache hit for brainstorm: ${topic}`);
       return cached;
     }
 
@@ -816,8 +954,8 @@ Return your response as JSON with this exact structure:
             outline: JSON.stringify(parsed.outline, null, 2)
           };
           
-          // Cache the result
-          aiCacheService.cacheBrainstorm(topic, provider, result);
+          // Cache the result (use actual provider from response)
+          aiCacheService.cacheBrainstorm(topic, response.provider, result);
           return result;
         }
       } catch (parseError) {
@@ -848,7 +986,7 @@ Return your response as JSON with this exact structure:
       };
 
       // Cache the fallback result
-      aiCacheService.cacheBrainstorm(topic, provider, result);
+      aiCacheService.cacheBrainstorm(topic, response.provider, result);
       return result;
     } catch (error) {
       if (error instanceof Error && error.message.includes('API key')) {
@@ -860,6 +998,7 @@ Return your response as JSON with this exact structure:
 
   /**
    * Generate complete ebook content with real AI
+   * Supports auto-provider fallback
    */
   async generateEbook(params: {
     topic: string;
@@ -872,7 +1011,8 @@ Return your response as JSON with this exact structure:
     model: string;
     apiKey: string;
   }): Promise<string> {
-    if (!this.validateApiKey(params.provider, params.apiKey)) {
+    // For auto provider, apiKey is not used (we'll fetch from localStorage)
+    if (params.provider !== "auto" && !this.validateApiKey(params.provider, params.apiKey)) {
       throw new Error(`Invalid API key for ${params.provider}. Please check your API key in settings.`);
     }
 
@@ -917,6 +1057,7 @@ Generate the complete ebook content now in Markdown format.`;
 
   /**
    * Generate a single chapter with real AI
+   * Supports auto-provider fallback
    */
   async generateChapter(params: {
     chapterTitle: string;
@@ -929,7 +1070,8 @@ Generate the complete ebook content now in Markdown format.`;
     model: string;
     apiKey: string;
   }): Promise<string> {
-    if (!this.validateApiKey(params.provider, params.apiKey)) {
+    // For auto provider, apiKey is not used (we'll fetch from localStorage)
+    if (params.provider !== "auto" && !this.validateApiKey(params.provider, params.apiKey)) {
       throw new Error(`Invalid API key for ${params.provider}. Please check your API key in settings.`);
     }
 
@@ -975,15 +1117,19 @@ Generate the complete chapter content now.`;
 
   /**
    * Humanize content using real AI processing with caching
+   * Supports auto-provider fallback
    */
   async humanizeContent(content: string, provider: string, model: string, apiKey: string): Promise<string> {
-    if (!this.validateApiKey(provider, apiKey)) {
+    // For auto provider, apiKey is not used (we'll fetch from localStorage)
+    if (provider !== "auto" && !this.validateApiKey(provider, apiKey)) {
       throw new Error(`Invalid API key for ${provider}. Please check your API key in settings.`);
     }
 
-    // Check cache first
-    const cached = aiCacheService.getCachedHumanization(content, provider);
+    // Check cache first (use provider-agnostic cache for auto mode)
+    const cacheKey = provider === "auto" ? "auto" : provider;
+    const cached = aiCacheService.getCachedHumanization(content, cacheKey);
     if (cached) {
+      console.log(`✅ Cache hit for humanization`);
       return cached;
     }
 
@@ -1028,8 +1174,8 @@ Return the fully humanized content that reads as if written by a skilled human a
         temperature: 0.3, // Lower temperature for more consistent editing
       });
 
-      // Cache the result
-      aiCacheService.cacheHumanization(content, provider, response.content);
+      // Cache the result (use actual provider from response)
+      aiCacheService.cacheHumanization(content, response.provider, response.content);
       
       return response.content;
     } catch (error) {

@@ -163,51 +163,76 @@ export default function Builder() {
 
       await sessionService.saveBuilderConfig(userId, sessionId, builderConfig);
 
-      // Get API key from localStorage
+      // Resolve provider and get API key from localStorage
+      let actualProvider = provider;
+      let actualModel = model;
       let apiKey = '';
-      if (provider !== 'auto') {
-        // Get key for specific provider
+      
+      // Resolve "auto" to actual provider by checking which keys are available
+      if (provider === 'auto') {
+        const preferenceOrder = ['openai', 'anthropic', 'google', 'xai', 'deepseek'];
         try {
           const stored = localStorage.getItem('bestseller_api_keys');
           if (stored) {
             const keys = JSON.parse(stored);
-            const keyData = keys.find((k: any) => k.provider === provider);
-            if (keyData) {
-              apiKey = keyData.key;
-              console.log(`✅ Using ${provider} key from localStorage`);
-            }
-          }
-        } catch (error) {
-          console.error('Error reading API key from localStorage:', error);
-        }
-        
-        if (!apiKey) {
-          throw new Error(`No API key found for ${selectedProvider?.name}. Please add your API key in Settings.`);
-        }
-      } else {
-        // For auto mode, get any available API key
-        const providers = ['openai', 'anthropic', 'xai', 'google', 'deepseek'];
-        try {
-          const stored = localStorage.getItem('bestseller_api_keys');
-          if (stored) {
-            const keys = JSON.parse(stored);
-            for (const p of providers) {
-              const keyData = keys.find((k: any) => k.provider === p);
-              if (keyData) {
-                apiKey = keyData.key;
-                console.log(`✅ Using ${p} key from localStorage (auto mode)`);
+            const availableProviders = keys.map((k: any) => k.provider);
+            
+            // Find first available provider from preference order
+            for (const pref of preferenceOrder) {
+              if (availableProviders.includes(pref)) {
+                actualProvider = pref;
+                console.log(`🔄 Auto-selected provider: ${actualProvider}`);
                 break;
               }
             }
+            
+            // If still auto, use first available
+            if (actualProvider === 'auto' && availableProviders.length > 0) {
+              actualProvider = availableProviders[0];
+              console.log(`🔄 Using first available provider: ${actualProvider}`);
+            }
           }
         } catch (error) {
-          console.error('Error reading API keys from localStorage:', error);
+          console.error('Error resolving auto provider:', error);
         }
         
-        if (!apiKey) {
-          throw new Error('No API keys found. Please add at least one API key in Settings to use auto mode.');
+        if (actualProvider === 'auto') {
+          throw new Error('No API keys found. Please add at least one API key in Settings.');
         }
       }
+      
+      // If model is auto, select best model for the provider
+      if (model === 'auto') {
+        const providerData = AI_PROVIDERS.find(p => p.id === actualProvider);
+        if (providerData && providerData.models.length > 0) {
+          actualModel = providerData.models[0].id;
+          console.log(`🔄 Auto-selected model: ${actualModel}`);
+        }
+      }
+      
+      // Get API key for the actual provider
+      try {
+        const stored = localStorage.getItem('bestseller_api_keys');
+        if (stored) {
+          const keys = JSON.parse(stored);
+          const keyData = keys.find((k: any) => k.provider === actualProvider);
+          if (keyData) {
+            apiKey = keyData.key;
+            console.log(`✅ Using ${actualProvider} (${actualModel}) with API key from localStorage`);
+          }
+        }
+      } catch (error) {
+        console.error('Error reading API key from localStorage:', error);
+      }
+      
+      if (!apiKey) {
+        const providerName = AI_PROVIDERS.find(p => p.id === actualProvider)?.name || actualProvider;
+        throw new Error(`No API key found for ${providerName}. Please add your API key in Settings.`);
+      }
+      
+      // Update provider and model to actual values for generation
+      const finalProvider = actualProvider;
+      const finalModel = actualModel;
 
       // Update progress: Starting generation
       setProgress(10);
@@ -230,7 +255,7 @@ export default function Builder() {
         });
 
         try {
-          finalOutline = await aiService.improveOutline(outline, provider, model, apiKey);
+          finalOutline = await aiService.improveOutline(outline, finalProvider, finalModel, apiKey);
         } catch (error) {
           console.warn('Failed to improve outline, using original:', error);
           // Continue with original outline if improvement fails
@@ -253,8 +278,8 @@ export default function Builder() {
         customTone,
         audience,
         outline: finalOutline,
-        provider,
-        model,
+        provider: finalProvider,
+        model: finalModel,
         apiKey
       });
 
@@ -278,18 +303,30 @@ export default function Builder() {
         startedAt: new Date().toISOString()
       });
 
-      const ebookId = await contentService.saveEbook(userId, {
+      const totalWordCount = chapters.reduce((sum, ch) => sum + ch.wordCount, 0);
+
+      const ebookToSave: any = {
+        id: '', // Will be generated by database
         title: topic,
         subtitle: `A comprehensive guide to ${topic.toLowerCase()}`,
         topic,
-        tone,
-        custom_tone: customTone,
-        audience,
-        ai_provider: provider,
-        ai_model: model,
         outline: finalOutline,
-        chapters
-      });
+        chapters,
+        metadata: {
+          wordCount: totalWordCount,
+          chapterCount: chapters.length,
+          aiProvider: finalProvider,
+          aiModel: finalModel,
+          tone,
+          customTone,
+          audience,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        },
+        status: 'completed' as const
+      };
+
+      const ebookId = await contentService.saveEbook(userId, ebookToSave);
 
       // Complete the session
       setProgress(100);
@@ -301,7 +338,8 @@ export default function Builder() {
         ebookId
       });
 
-      await sessionService.completeSession(userId, sessionId, ebookId);
+      // Mark session as completed
+      await sessionService.updateSessionStatus(userId, sessionId, 'completed');
 
       // Navigate to preview with the generated ebook
       setTimeout(() => {
@@ -347,10 +385,13 @@ export default function Builder() {
         
         // Save previous chapter if exists
         if (currentChapter) {
+          const chapterContent = currentChapter.content.trim();
           chapters.push({
+            id: `chapter-${currentChapter.number}`,
+            number: currentChapter.number,
             title: currentChapter.title,
-            content: currentChapter.content.trim(),
-            chapter_number: currentChapter.number
+            content: chapterContent,
+            wordCount: chapterContent.split(/\s+/).length
           });
         }
 
@@ -369,19 +410,24 @@ export default function Builder() {
 
     // Add the last chapter
     if (currentChapter) {
+      const chapterContent = currentChapter.content.trim();
       chapters.push({
+        id: `chapter-${currentChapter.number}`,
+        number: currentChapter.number,
         title: currentChapter.title,
-        content: currentChapter.content.trim(),
-        chapter_number: currentChapter.number
+        content: chapterContent,
+        wordCount: chapterContent.split(/\s+/).length
       });
     }
 
     // If no chapters were found, create a single chapter with all content
     if (chapters.length === 0) {
       chapters.push({
+        id: 'chapter-1',
+        number: 1,
         title: title,
         content: content,
-        chapter_number: 1
+        wordCount: content.split(/\s+/).length
       });
     }
 

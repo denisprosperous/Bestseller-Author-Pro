@@ -203,8 +203,49 @@ export default function Brainstorm() {
     const form = e.currentTarget;
     const formData = new FormData(form);
     
-    // Get API key from localStorage
-    const actualProvider = provider === 'auto' ? 'openai' : provider;
+    // Resolve "auto" to actual provider by checking which keys are available
+    let actualProvider = provider;
+    let actualModel = model;
+    
+    if (provider === 'auto') {
+      // Try providers in preference order: openai, anthropic, google, xai, deepseek
+      const preferenceOrder = ['openai', 'anthropic', 'google', 'xai', 'deepseek'];
+      try {
+        const stored = localStorage.getItem('bestseller_api_keys');
+        if (stored) {
+          const keys = JSON.parse(stored);
+          const availableProviders = keys.map((k: any) => k.provider);
+          
+          // Find first available provider from preference order
+          for (const pref of preferenceOrder) {
+            if (availableProviders.includes(pref)) {
+              actualProvider = pref;
+              console.log(`🔄 Auto-selected provider: ${actualProvider}`);
+              break;
+            }
+          }
+          
+          // If still auto, use first available
+          if (actualProvider === 'auto' && availableProviders.length > 0) {
+            actualProvider = availableProviders[0];
+            console.log(`🔄 Using first available provider: ${actualProvider}`);
+          }
+        }
+      } catch (error) {
+        console.error('Error resolving auto provider:', error);
+      }
+    }
+    
+    // If model is auto, select best model for the provider
+    if (model === 'auto') {
+      const providerData = AI_PROVIDERS.find(p => p.id === actualProvider);
+      if (providerData && providerData.models.length > 0) {
+        actualModel = providerData.models[0].id;
+        console.log(`🔄 Auto-selected model: ${actualModel}`);
+      }
+    }
+    
+    // Get API key from localStorage for the actual provider
     try {
       const stored = localStorage.getItem('bestseller_api_keys');
       if (stored) {
@@ -212,13 +253,23 @@ export default function Brainstorm() {
         const keyData = keys.find((k: any) => k.provider === actualProvider);
         if (keyData) {
           formData.set('apiKey', keyData.key);
-          console.log(`✅ Using ${actualProvider} key from localStorage`);
+          formData.set('provider', actualProvider);
+          formData.set('model', actualModel);
+          console.log(`✅ Using ${actualProvider} (${actualModel}) with API key from localStorage`);
         } else {
           console.warn(`⚠️ No API key found for ${actualProvider} in localStorage`);
+          alert(`No API key found for ${actualProvider}. Please add your API key in Settings.`);
+          return;
         }
+      } else {
+        console.warn('⚠️ No API keys found in localStorage');
+        alert('No API keys found. Please add your API keys in Settings.');
+        return;
       }
     } catch (error) {
       console.error('Error reading API key from localStorage:', error);
+      alert('Error reading API keys. Please try again.');
+      return;
     }
     
     // Submit the form with the API key

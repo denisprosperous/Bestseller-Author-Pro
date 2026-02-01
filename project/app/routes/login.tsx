@@ -79,6 +79,11 @@ export default function Login() {
   return (
     <div className={styles.container}>
       <div className={styles.content}>
+        <div className={styles.branding}>
+          <h1 className={styles.appName}>Bestseller Author Pro</h1>
+          <p className={styles.tagline}>AI-Powered Content Creation Platform</p>
+        </div>
+        
         <Card className={styles.card}>
           <CardHeader className={styles.header}>
             <CardTitle className={styles.title}>
@@ -86,8 +91,8 @@ export default function Login() {
             </CardTitle>
             <CardDescription className={styles.description}>
               {isSignUp 
-                ? "Sign up to start creating amazing ebooks with AI" 
-                : "Sign in to your account to continue creating"
+                ? "Sign up to start creating amazing ebooks, audiobooks, and children's books with AI" 
+                : "Sign in to your account to continue creating professional content"
               }
             </CardDescription>
           </CardHeader>
