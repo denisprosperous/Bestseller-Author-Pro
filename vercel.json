@@ -1,7 +1,3 @@
 {
-  "buildCommand": "cd project && npm install && npm run build",
-  "installCommand": "npm install --prefix ./project",
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/api" }
-  ]
+  "version": 2
 }

@@ -1,8 +1,8 @@
 import type { Config } from "@react-router/dev/config";
 
 export default {
-  // Enable SSR for Vercel deployment
-  ssr: true,
+  // SPA mode for static deployment
+  ssr: false,
   future: {
     unstable_optimizeDeps: true,
   },
