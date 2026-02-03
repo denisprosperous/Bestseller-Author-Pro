@@ -1,0 +1,20 @@
+{
+  "name": "bestseller-author-pro-root",
+  "private": true,
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@vitest/ui": "^4.0.18",
+    "fast-check": "^4.5.3",
+    "jsdom": "^27.4.0",
+    "vitest": "^4.0.18"
+  },
+  "scripts": {
+    "dev": "npm --prefix project run dev",
+    "build": "npm --prefix project run build",
+    "start": "npm --prefix project run start",
+    "start:local": "npm --prefix project run start:local",
+    "preview": "npm --prefix project run preview",
+    "typecheck": "npm --prefix project run typecheck",
+    "test": "npm --prefix project run test"
+  }
+}
