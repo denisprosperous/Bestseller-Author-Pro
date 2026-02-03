@@ -8,17 +8,13 @@ let supabaseKey = import.meta.env.VITE_SUPABASE_API_KEY ?? process.env.SUPABASE_
 let isPlaceholder = supabaseUrl?.includes("placeholder") || supabaseKey?.includes("placeholder");
 
 if (!supabaseUrl || !supabaseKey) {
+  // In production, we log a warning but don't crash immediately.
+  // This allows the app to start and render UI, though DB features will fail.
   if (import.meta.env.PROD) {
-    throw new Error(`
-      Missing Supabase environment variables!
-      
-      Please set up your real Supabase project:
-      1. Go to https://supabase.com/dashboard
-      2. Create a new project
-      3. Get your Project URL and API Key from Settings > API
-      4. Set environment variables:
-         VITE_SUPABASE_PROJECT_URL=https://your-project-id.supabase.co
-         VITE_SUPABASE_API_KEY=your-anon-key-here
+    console.warn(`
+      WARNING: Missing Supabase environment variables!
+      Database features will not work.
+      Please set VITE_SUPABASE_PROJECT_URL and VITE_SUPABASE_API_KEY.
     `);
   }
 
