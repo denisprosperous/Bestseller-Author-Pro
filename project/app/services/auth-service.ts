@@ -35,14 +35,6 @@ export class AuthService {
    */
   static async getCurrentUser(): Promise<AuthUser | null> {
     try {
-      // Check mock session first
-      if (typeof window !== 'undefined') {
-        const mockSession = localStorage.getItem(MOCK_STORAGE_KEY);
-        if (mockSession) {
-          return JSON.parse(mockSession).user;
-        }
-      }
-
       const { data: { user }, error } = await supabase.auth.getUser();
       
       if (error) {
