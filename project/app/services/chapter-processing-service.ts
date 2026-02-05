@@ -1,5 +1,5 @@
 import { supabase } from "~/lib/supabase";
-import { audioProductionService, ChapterMetadata, AudiobookMetadata, IntroOutroAudio } from "~/services/audio-production-service";
+import { audioProductionService, type ChapterMetadata, type AudiobookMetadata, type IntroOutroAudio } from "~/services/audio-production-service";
 
 export interface ChapterBreak {
   chapterNumber: number;

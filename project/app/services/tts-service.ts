@@ -17,6 +17,7 @@ export interface TTSRequest {
   speed?: number; // 0.25 to 4.0
   pitch?: number; // -20.0 to 20.0
   outputFormat?: 'mp3' | 'wav' | 'ogg';
+  apiKey?: string; // Optional API key override
 }
 
 export interface EmotionalTTSRequest extends TTSRequest {
@@ -38,6 +39,7 @@ export interface AudioResult {
   format: string;
   provider: string;
   voiceId: string;
+  audioContent?: string; // Base64 encoded audio content
 }
 
 export interface Chapter {
@@ -206,7 +208,7 @@ export class TTSService {
    */
   private async generateElevenLabsSpeech(request: TTSRequest, userId: string): Promise<AudioResult> {
     try {
-      const apiKey = await apiKeyService.getApiKey(userId, 'elevenlabs');
+      const apiKey = request.apiKey || await apiKeyService.getApiKey(userId, 'elevenlabs');
       if (!apiKey) {
         throw new Error('ElevenLabs API key not found');
       }
@@ -258,7 +260,7 @@ export class TTSService {
    */
   private async generateAzureSpeech(request: TTSRequest, userId: string): Promise<AudioResult> {
     try {
-      const apiKey = await apiKeyService.getApiKey(userId, 'azure-speech');
+      const apiKey = request.apiKey || await apiKeyService.getApiKey(userId, 'azure-speech');
       if (!apiKey) {
         throw new Error('Azure Speech API key not found');
       }
@@ -297,7 +299,7 @@ export class TTSService {
    */
   private async generateAWSPollySpeech(request: TTSRequest, userId: string): Promise<AudioResult> {
     try {
-      const apiKey = await apiKeyService.getApiKey(userId, 'aws-polly');
+      const apiKey = request.apiKey || await apiKeyService.getApiKey(userId, 'aws-polly');
       if (!apiKey) {
         throw new Error('AWS Polly API key not found');
       }
@@ -334,7 +336,7 @@ export class TTSService {
    */
   private async generateGoogleSpeech(request: TTSRequest, userId: string): Promise<AudioResult> {
     try {
-      const apiKey = await apiKeyService.getApiKey(userId, 'google-cloud');
+      const apiKey = request.apiKey || await apiKeyService.getApiKey(userId, 'google-cloud');
       if (!apiKey) {
         throw new Error('Google Cloud API key not found');
       }
@@ -361,7 +363,7 @@ export class TTSService {
    */
   private async generateOpenAISpeech(request: TTSRequest, userId: string): Promise<AudioResult> {
     try {
-      const apiKey = await apiKeyService.getApiKey(userId, 'openai');
+      const apiKey = request.apiKey || await apiKeyService.getApiKey(userId, 'openai');
       if (!apiKey) {
         throw new Error('OpenAI API key not found');
       }

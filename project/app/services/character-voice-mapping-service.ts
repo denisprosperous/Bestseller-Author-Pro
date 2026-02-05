@@ -1,6 +1,6 @@
 import { supabase } from "~/lib/supabase";
-import { Character, CharacterVoiceMap, VoiceCharacteristics } from "./dialogue-detection-service";
-import { VoiceProfile } from "./voice-management-service";
+import type { Character, CharacterVoiceMap, VoiceCharacteristics } from "./dialogue-detection-service";
+import type { VoiceProfile } from "./voice-management-service";
 
 export interface CharacterVoiceAssignment {
   id: string;

@@ -13,7 +13,7 @@ import { ProtectedRoute } from "~/components/protected-route";
 import styles from "./settings.module.css";
 
 // Use localStorage for testing (set to true to enable)
-const USE_LOCAL_STORAGE = true;
+const USE_LOCAL_STORAGE = false;
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -207,6 +207,72 @@ export default function Settings() {
                   </>
                 )}
               </p>
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.section}>
+          <h2 className={styles.sectionTitle}>Backend Configuration (Advanced)</h2>
+          <div className={styles.alert}>
+            <Info className={styles.alertIcon} />
+            <div className={styles.alertContent}>
+              <h3 className={styles.alertTitle}>Supabase Connection</h3>
+              <p className={styles.alertText}>
+                Override the default Supabase connection settings. This is useful if you need to provide a specific Project URL or Anon Key directly in the browser.
+                <br /><strong>Note:</strong> These values are stored in your browser's local storage.
+              </p>
+            </div>
+          </div>
+          
+          <div className={styles.providers}>
+            <div className={styles.provider}>
+              <div className={styles.providerHeader}>
+                <div className={styles.providerInfo}>
+                  <h3 className={styles.providerName}>Supabase Project URL</h3>
+                  <p className={styles.providerDesc}>The URL of your Supabase project (e.g., https://xyz.supabase.co)</p>
+                </div>
+              </div>
+              <div className={styles.keyInput}>
+                <Input
+                  type="text"
+                  placeholder="Enter Supabase Project URL"
+                  defaultValue={typeof window !== 'undefined' ? localStorage.getItem('supabase_project_url') || '' : ''}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      localStorage.setItem('supabase_project_url', e.target.value);
+                    } else {
+                      localStorage.removeItem('supabase_project_url');
+                    }
+                  }}
+                  className={styles.keyInputField}
+                />
+                <Button onClick={() => window.location.reload()}>Save & Reload</Button>
+              </div>
+            </div>
+
+            <div className={styles.provider}>
+              <div className={styles.providerHeader}>
+                <div className={styles.providerInfo}>
+                  <h3 className={styles.providerName}>Supabase Anon Key</h3>
+                  <p className={styles.providerDesc}>The public anonymous key for your Supabase project</p>
+                </div>
+              </div>
+              <div className={styles.keyInput}>
+                <Input
+                  type="password"
+                  placeholder="Enter Supabase Anon Key"
+                  defaultValue={typeof window !== 'undefined' ? localStorage.getItem('supabase_anon_key') || '' : ''}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      localStorage.setItem('supabase_anon_key', e.target.value);
+                    } else {
+                      localStorage.removeItem('supabase_anon_key');
+                    }
+                  }}
+                  className={styles.keyInputField}
+                />
+                <Button onClick={() => window.location.reload()}>Save & Reload</Button>
+              </div>
             </div>
           </div>
         </div>

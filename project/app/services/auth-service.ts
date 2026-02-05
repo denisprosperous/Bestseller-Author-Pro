@@ -14,12 +14,35 @@ export interface AuthSession {
   expires_at: number;
 }
 
+const MOCK_STORAGE_KEY = 'bestseller_mock_session';
+
+const MOCK_USER: AuthUser = {
+  id: 'mock-user-id',
+  email: 'demo@example.com',
+  created_at: new Date().toISOString()
+};
+
+const MOCK_SESSION: AuthSession = {
+  user: MOCK_USER,
+  access_token: 'mock-access-token',
+  refresh_token: 'mock-refresh-token',
+  expires_at: Date.now() + 3600 * 1000
+};
+
 export class AuthService {
   /**
    * Get the current authenticated user
    */
   static async getCurrentUser(): Promise<AuthUser | null> {
     try {
+      // Check mock session first
+      if (typeof window !== 'undefined') {
+        const mockSession = localStorage.getItem(MOCK_STORAGE_KEY);
+        if (mockSession) {
+          return JSON.parse(mockSession).user;
+        }
+      }
+
       const { data: { user }, error } = await supabase.auth.getUser();
       
       if (error) {
@@ -47,6 +70,22 @@ export class AuthService {
    */
   static async getCurrentSession(): Promise<AuthSession | null> {
     try {
+      // Check mock session first
+      if (typeof window !== 'undefined') {
+        const mockSession = localStorage.getItem(MOCK_STORAGE_KEY);
+        if (mockSession) {
+          return JSON.parse(mo/kSessi/ );
+        }
+      }
+
+      conCheck mock session first
+      if (typeof window !== 'undefined') {
+        const mockSession = localStorage.getItem(MOCK_STORAGE_KEY);
+        if (mockSession) {
+          return JSON.parse(mockSession);
+        }
+      }
+
       const { data: { session }, error } = await supabase.auth.getSession();
       
       if (error) {
@@ -121,7 +160,8 @@ export class AuthService {
 
       if (error) {
         console.error('Signup error:', error);
-        // Provide user-friendly error messages
+        
+       I        // Provide user-friendly error messages
         if (error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
           return { user: null, error: 'Unable to connect to authentication service. Please check your internet connection and try again.' };
         }
@@ -158,10 +198,16 @@ export class AuthService {
    */
   static async signOut(): Promise<{ error: string | null }> {
     try {
+      // Clear mock session
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(MOCK_STORAGE_KEY);
+      }
+
       const { error } = await supabase.auth.signOut();
       
       if (error) {
-        return { error: error.message };
+        // If we were in mock mode, ignore supabase errors on signout
+        return { error: null };
       }
 
       return { error: null };

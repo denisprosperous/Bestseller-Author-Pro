@@ -43,3 +43,5 @@ temp/
 
 # Foundation completion folder (already completed work)
 foundation-completion/
+.vercel
+.env*.local

@@ -1,5 +1,5 @@
 import { supabase } from "~/lib/supabase";
-import { audioProductionService, AudiobookMetadata, ValidationResult } from "~/services/audio-production-service";
+import { audioProductionService, type AudiobookMetadata, type ValidationResult } from "~/services/audio-production-service";
 
 export interface ACXExport {
   audioFiles: string[]; // URLs to chapter audio files

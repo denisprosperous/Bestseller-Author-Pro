@@ -16,7 +16,7 @@ export function meta({}: Route.MetaArgs) {
   ];
 }
 
-export async function action({ request }: Route.ActionArgs) {
+export async function clientAction({ request }: Route.ActionArgs) {
   const formData = await request.formData();
   const email = formData.get("email") as string;
 
@@ -43,7 +43,7 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function ForgotPassword() {
-  const actionData = useActionData<typeof action>();
+  const actionData = useActionData<typeof clientAction>();
   const navigation = useNavigation();
 
   const isSubmitting = navigation.state === "submitting";

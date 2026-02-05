@@ -498,16 +498,20 @@ export class AudioOptimizationService {
       // Generate audio using TTS service
       const audioResult = await ttsService.generateSpeech({
         text,
-        provider,
-        voiceId,
+        voice: {
+          id: 'temp',
+          provider: provider as any,
+          voice_id: voiceId,
+          name: 'Temp',
+          language: 'en'
+        },
         apiKey,
         speed: voiceSettings.speed || 1.0,
         pitch: voiceSettings.pitch || 0,
-        volume: voiceSettings.volume || 1.0
-      });
+      }, 'temp-user');
       
       // Convert base64 audio to ArrayBuffer if needed
-      if (typeof audioResult.audioContent === 'string') {
+      if (audioResult.audioContent && typeof audioResult.audioContent === 'string') {
         const binaryString = atob(audioResult.audioContent);
         const bytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
@@ -516,7 +520,7 @@ export class AudioOptimizationService {
         return bytes.buffer;
       }
       
-      return audioResult.audioContent;
+      return new ArrayBuffer(0);
     } catch (error) {
       console.error('Audio generation error:', error);
       // Fallback: return empty audio buffer

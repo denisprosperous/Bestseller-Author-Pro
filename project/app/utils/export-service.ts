@@ -1,5 +1,4 @@
 import jsPDF from 'jspdf';
-import * as nodepub from 'nodepub';
 import JSZip from 'jszip';
 
 export interface ExportOptions {

@@ -47,7 +47,7 @@ export function meta({}: Route.MetaArgs) {
 /**
  * Loader: Initialize session and load existing brainstorm results
  */
-export async function loader({ request }: LoaderFunctionArgs): Promise<Response> {
+export async function clientLoader({ request }: LoaderFunctionArgs): Promise<Response> {
   try {
     const user = await AuthService.getCurrentUser();
     
@@ -63,7 +63,7 @@ export async function loader({ request }: LoaderFunctionArgs): Promise<Response>
 
     // Load existing brainstorm results from session
     const sessionData = await sessionService.getSession(user.id, sessionId);
-    const existingResults = sessionData?.brainstorm_data || null;
+    const existingResults = sessionData?.brainstormData || null;
 
     // Check if user has any API keys
     // Note: This checks database keys. localStorage keys are checked client-side.
@@ -89,7 +89,7 @@ export async function loader({ request }: LoaderFunctionArgs): Promise<Response>
 /**
  * Action: Handle brainstorm form submission
  */
-export async function action({ request }: ActionFunctionArgs): Promise<Response> {
+export async function clientAction({ request }: ActionFunctionArgs): Promise<Response> {
   try {
     const user = await AuthService.getCurrentUser();
     
@@ -159,9 +159,9 @@ export async function action({ request }: ActionFunctionArgs): Promise<Response>
 
       // Update session with selected title
       const sessionData = await sessionService.getSession(user.id, sessionId);
-      if (sessionData?.brainstorm_data) {
+      if (sessionData?.brainstormData) {
         await sessionService.saveBrainstormResult(user.id, sessionId, {
-          ...sessionData.brainstorm_data,
+          ...sessionData.brainstormData,
           selectedTitle
         });
       }

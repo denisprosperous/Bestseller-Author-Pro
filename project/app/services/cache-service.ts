@@ -41,7 +41,7 @@ export class CacheService {
   /**
    * Simple hash function for cache keys
    */
-  private hashString(str: string): string {
+  protected hashString(str: string): string {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
@@ -376,19 +376,6 @@ export class AICacheService extends CacheService {
     const contentHash = this.hashString(content);
     const params = { contentHash, provider, contentLength: content.length };
     return this.get('humanization', params);
-  }
-
-  /**
-   * Hash string for content-based caching
-   */
-  private hashString(str: string): string {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-    return Math.abs(hash).toString(36);
   }
 }
 

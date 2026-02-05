@@ -8,6 +8,10 @@ import { createClient } from "@supabase/supabase-js";
 // Get environment variables with proper fallbacks
 const getSupabaseUrl = () => {
   if (typeof window !== 'undefined') {
+    // Check localStorage override first
+    const storedUrl = localStorage.getItem('supabase_project_url');
+    if (storedUrl) return storedUrl;
+
     // Browser environment - use VITE_ prefixed vars
     return import.meta.env.VITE_SUPABASE_PROJECT_URL || 
            "https://shzfuasxqqflrfiiwtpw.supabase.co";
@@ -20,14 +24,18 @@ const getSupabaseUrl = () => {
 
 const getSupabaseKey = () => {
   if (typeof window !== 'undefined') {
+    // Check localStorage override first
+    const storedKey = localStorage.getItem('supabase_anon_key');
+    if (storedKey) return storedKey;
+
     // Browser environment - use VITE_ prefixed vars
     return import.meta.env.VITE_SUPABASE_API_KEY || 
-           "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNoemZ1YXN4cXFmbHJmaWl3dHB3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc5NzE5NzQsImV4cCI6MjA1MzU0Nzk3NH0.uIWafl14qsPPffW5dOLBHQ_ObSLTB7V";
+           "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNoemZ1YXN4cXFmbHJmaWl3dHB3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NDg5ODgsImV4cCI6MjA4NTAyNDk4OH0.RX8qwWNX11rZhlAzlI4494-m6jldeWre_PkHcOKEi6s";
   }
   // Server environment
   return process.env.SUPABASE_API_KEY || 
          process.env.VITE_SUPABASE_API_KEY ||
-         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNoemZ1YXN4cXFmbHJmaWl3dHB3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc5NzE5NzQsImV4cCI6MjA1MzU0Nzk3NH0.uIWafl14qsPPffW5dOLBHQ_ObSLTB7V";
+         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNoemZ1YXN4cXFmbHJmaWl3dHB3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NDg5ODgsImV4cCI6MjA4NTAyNDk4OH0.RX8qwWNX11rZhlAzlI4494-m6jldeWre_PkHcOKEi6s";
 };
 
 const supabaseUrl = getSupabaseUrl();
