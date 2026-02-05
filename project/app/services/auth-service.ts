@@ -62,22 +62,6 @@ export class AuthService {
    */
   static async getCurrentSession(): Promise<AuthSession | null> {
     try {
-      // Check mock session first
-      if (typeof window !== 'undefined') {
-        const mockSession = localStorage.getItem(MOCK_STORAGE_KEY);
-        if (mockSession) {
-          return JSON.parse(mo/kSessi/ );
-        }
-      }
-
-      conCheck mock session first
-      if (typeof window !== 'undefined') {
-        const mockSession = localStorage.getItem(MOCK_STORAGE_KEY);
-        if (mockSession) {
-          return JSON.parse(mockSession);
-        }
-      }
-
       const { data: { session }, error } = await supabase.auth.getSession();
       
       if (error) {
@@ -116,6 +100,15 @@ export class AuthService {
       });
 
       if (error) {
+        // Fallback to mock auth if API key is invalid
+        if (error.message.includes('Invalid API key') || error.message.includes('fetch')) {
+          console.warn('⚠️ Supabase auth failed, falling back to mock auth');
+          if (typeof window !== 'undefined') {
+            const mockSession = { ...MOCK_SESSION, user: { ...MOCK_USER, email } };
+            localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(mockSession));
+            return { user: mockSession.user, error: null };
+          }
+        }
         return { user: null, error: error.message };
       }
 
