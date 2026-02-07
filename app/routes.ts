@@ -12,5 +12,4 @@ export default [
   route("children-books", "routes/children-books.tsx"),
   route("settings", "routes/settings.tsx"),
   route("setup-supabase", "routes/setup-supabase.tsx"),
-  route("api/keys/secure", "routes/api/keys-secure.ts"),
 ] satisfies RouteConfig;
