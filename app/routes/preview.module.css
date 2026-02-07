@@ -1,0 +1,223 @@
+.container {
+  min-height: calc(100vh - 80px);
+  background: var(--color-neutral-1);
+}
+
+.content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-6);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-7);
+  gap: var(--space-4);
+}
+
+.headerLeft {
+  flex: 1;
+}
+
+.title {
+  font: var(--font-heading);
+  color: var(--color-neutral-12);
+  margin: 0 0 var(--space-2) 0;
+}
+
+.subtitle {
+  font: var(--font-body);
+  color: var(--color-neutral-10);
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: var(--space-6);
+}
+
+.sidebar {
+  background: var(--color-neutral-2);
+  border: 1px solid var(--color-neutral-5);
+  border-radius: var(--radius-4);
+  padding: var(--space-5);
+  height: fit-content;
+  position: sticky;
+  top: calc(80px + var(--space-6));
+}
+
+.sidebarTitle {
+  font: var(--font-subheading);
+  color: var(--color-neutral-12);
+  margin: 0 0 var(--space-4) 0;
+  font-size: var(--font-size-1);
+  text-transform: uppercase;
+  letter-spacing: var(--font-letterspacing-2);
+}
+
+.toc {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.tocItem {
+  padding: var(--space-3);
+  border-radius: var(--radius-2);
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  font: var(--font-body);
+  color: var(--color-neutral-11);
+  font-size: var(--font-size-0);
+}
+
+.tocItem:hover {
+  background: var(--color-accent-3);
+  color: var(--color-accent-11);
+}
+
+.tocItem.active {
+  background: var(--color-accent-4);
+  color: var(--color-accent-11);
+  font-weight: 500;
+}
+
+.main {
+  background: var(--color-neutral-2);
+  border: 1px solid var(--color-neutral-5);
+  border-radius: var(--radius-4);
+  padding: var(--space-8);
+  min-height: 600px;
+}
+
+.bookTitle {
+  font: var(--font-display);
+  font-size: var(--font-size-7);
+  color: var(--color-neutral-12);
+  margin: 0 0 var(--space-3) 0;
+  text-align: center;
+  line-height: var(--font-lineheight-1);
+}
+
+.bookSubtitle {
+  font: var(--font-heading);
+  font-size: var(--font-size-3);
+  color: var(--color-neutral-10);
+  margin: 0 0 var(--space-8) 0;
+  text-align: center;
+  font-style: italic;
+}
+
+.chapter {
+  margin-bottom: var(--space-8);
+}
+
+.chapterTitle {
+  font: var(--font-heading);
+  color: var(--color-neutral-12);
+  margin: 0 0 var(--space-5) 0;
+  padding-bottom: var(--space-3);
+  border-bottom: 2px solid var(--color-neutral-6);
+}
+
+.chapterContent {
+  font: var(--font-body);
+  color: var(--color-neutral-11);
+  line-height: var(--font-lineheight-4);
+}
+
+.chapterContent p {
+  margin: 0 0 var(--space-4) 0;
+  text-indent: var(--space-6);
+}
+
+.chapterContent p:first-of-type {
+  text-indent: 0;
+}
+
+.chapterContent h3 {
+  font: var(--font-subheading);
+  font-size: var(--font-size-2);
+  color: var(--color-neutral-12);
+  margin: var(--space-6) 0 var(--space-3) 0;
+}
+
+.exportDialog {
+  padding: var(--space-6);
+}
+
+.exportTitle {
+  font: var(--font-heading);
+  font-size: var(--font-size-4);
+  color: var(--color-neutral-12);
+  margin: 0 0 var(--space-5) 0;
+}
+
+.exportOptions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.exportOption {
+  padding: var(--space-5);
+  border: 2px solid var(--color-neutral-5);
+  border-radius: var(--radius-3);
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  text-align: center;
+}
+
+.exportOption:hover {
+  border-color: var(--color-accent-7);
+  background: var(--color-accent-2);
+}
+
+.exportOption.selected {
+  border-color: var(--color-accent-9);
+  background: var(--color-accent-3);
+}
+
+.exportOptionTitle {
+  font: var(--font-subheading);
+  color: var(--color-neutral-12);
+  margin: 0 0 var(--space-2) 0;
+}
+
+.exportOptionDesc {
+  font: var(--font-caption);
+  color: var(--color-neutral-10);
+  margin: 0;
+}
+
+.exportActions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+}
+
+@media (max-width: 968px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+  }
+
+  .exportOptions {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,218 @@
+.container {
+  min-height: calc(100vh - 80px);
+  background: var(--color-neutral-1);
+}
+
+.content {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-6);
+}
+
+.header {
+  margin-bottom: var(--space-8);
+}
+
+.title {
+  font: var(--font-heading);
+  color: var(--color-neutral-12);
+  margin: 0 0 var(--space-3) 0;
+}
+
+.description {
+  font: var(--font-body);
+  font-size: var(--font-size-2);
+  color: var(--color-neutral-11);
+  margin: 0;
+  line-height: var(--font-lineheight-3);
+}
+
+.section {
+  background: var(--color-neutral-2);
+  border: 1px solid var(--color-neutral-5);
+  border-radius: var(--radius-4);
+  padding: var(--space-6);
+  margin-bottom: var(--space-6);
+}
+
+.sectionTitle {
+  font: var(--font-subheading);
+  font-size: var(--font-size-3);
+  color: var(--color-neutral-12);
+  margin: 0 0 var(--space-5) 0;
+}
+
+.providers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.provider {
+  padding: var(--space-5);
+  background: var(--color-neutral-1);
+  border: 1px solid var(--color-neutral-5);
+  border-radius: var(--radius-3);
+}
+
+.providerHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+.providerInfo {
+  flex: 1;
+}
+
+.providerName {
+  font: var(--font-body);
+  font-weight: 600;
+  color: var(--color-neutral-12);
+  margin: 0 0 var(--space-1) 0;
+}
+
+.providerDesc {
+  font: var(--font-caption);
+  color: var(--color-neutral-10);
+  margin: 0;
+}
+
+.providerStatus {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font: var(--font-caption);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-2);
+}
+
+.providerStatus.configured {
+  background: var(--color-success-2);
+  color: var(--color-success-11);
+}
+
+.providerStatus.notConfigured {
+  background: var(--color-neutral-3);
+  color: var(--color-neutral-10);
+}
+
+.statusIcon {
+  width: 14px;
+  height: 14px;
+}
+
+.keyInput {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.keyInputField {
+  flex: 1;
+}
+
+.alert {
+  padding: var(--space-4);
+  background: var(--color-info-1);
+  border: 1px solid var(--color-info-9);
+  border-radius: var(--radius-3);
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.alertIcon {
+  width: 20px;
+  height: 20px;
+  color: var(--color-info-9);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.alertContent {
+  flex: 1;
+}
+
+.alertTitle {
+  font: var(--font-body);
+  font-weight: 600;
+  color: var(--color-neutral-12);
+  margin: 0 0 var(--space-2) 0;
+}
+
+.alertText {
+  font: var(--font-caption);
+  color: var(--color-neutral-11);
+  margin: 0;
+  line-height: var(--font-lineheight-3);
+}
+
+.alertText a {
+  color: var(--color-accent-9);
+  text-decoration: underline;
+}
+
+.alertText a:hover {
+  color: var(--color-accent-10);
+}
+
+.errorAlert {
+  margin-bottom: var(--space-4);
+}
+
+.successAlert {
+  margin-bottom: var(--space-4);
+  border-color: var(--color-success-6);
+  background: var(--color-success-2);
+  color: var(--color-success-11);
+}
+
+.alertIconSmall {
+  width: 1rem;
+  height: 1rem;
+}
+
+.loadingState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-8);
+  color: var(--color-neutral-11);
+}
+
+.spinner {
+  width: 2rem;
+  height: 2rem;
+  animation: spin 1s linear infinite;
+}
+
+.buttonSpinner {
+  width: 1rem;
+  height: 1rem;
+  margin-right: var(--space-2);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 768px) {
+  .providerHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  .keyInput {
+    flex-direction: column;
+  }
+}

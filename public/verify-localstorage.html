@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify localStorage API Keys</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 800px;
+            width: 100%;
+            padding: 40px;
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        .test-section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 2px solid #e9ecef;
+        }
+        .test-section h2 {
+            color: #333;
+            margin-bottom: 16px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-badge.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-badge.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status-badge.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin: 5px;
+        }
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        button.secondary {
+            background: #6c757d;
+        }
+        button.secondary:hover {
+            background: #5a6268;
+        }
+        button.danger {
+            background: #dc3545;
+        }
+        button.danger:hover {
+            background: #c82333;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 12px;
+            transition: border-color 0.2s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .result {
+            margin-top: 16px;
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .result.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .result.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .result.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        pre {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.5;
+            margin-top: 12px;
+        }
+        .icon {
+            font-size: 24px;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+        .stat-card {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔑 localStorage API Key Verifier</h1>
+        <p class="subtitle">Test and verify your API key storage is working correctly</p>
+
+        <!-- Test 1: localStorage Availability -->
+        <div class="test-section">
+            <h2>
+                <span class="icon">🔍</span>
+                Test 1: localStorage Availability
+                <span id="test1-status" class="status-badge pending">Pending</span>
+            </h2>
+            <button onclick="testLocalStorageAvailable()">Run Test</button>
+            <div id="test1-result"></div>
+        </div>
+
+        <!-- Test 2: Save API Key -->
+        <div class="test-section">
+            <h2>
+                <span class="icon">💾</span>
+                Test 2: Save API Key
+                <span id="test2-status" class="status-badge pending">Pending</span>
+            </h2>
+            <input type="text" id="testKey" placeholder="Enter test API key (e.g., sk-test-123)" value="sk-test-key-12345">
+            <select id="testProvider" style="width: 100%; padding: 12px; border: 2px solid #e9ecef; border-radius: 8px; margin-bottom: 12px;">
+                <option value="openai">OpenAI</option>
+                <option value="google">Google</option>
+                <option value="anthropic">Anthropic</option>
+                <option value="xai">xAI</option>
+                <option value="deepseek">DeepSeek</option>
+            </select>
+            <button onclick="testSaveKey()">Save Test Key</button>
+            <div id="test2-result"></div>
+        </div>
+
+        <!-- Test 3: Load API Keys -->
+        <div class="test-section">
+            <h2>
+                <span class="icon">📂</span>
+                Test 3: Load API Keys
+                <span id="test3-status" class="status-badge pending">Pending</span>
+            </h2>
+            <button onclick="testLoadKeys()">Load All Keys</button>
+            <div id="test3-result"></div>
+        </div>
+
+        <!-- Test 4: View Raw Storage -->
+        <div class="test-section">
+            <h2>
+                <span class="icon">🗄️</span>
+                Test 4: Raw localStorage Data
+                <span id="test4-status" class="status-badge pending">Pending</span>
+            </h2>
+            <button onclick="testRawStorage()">View Raw Data</button>
+            <div id="test4-result"></div>
+        </div>
+
+        <!-- Test 5: Clear All Keys -->
+        <div class="test-section">
+            <h2>
+                <span class="icon">🗑️</span>
+                Test 5: Clear All Keys
+                <span id="test5-status" class="status-badge pending">Pending</span>
+            </h2>
+            <button class="danger" onclick="testClearKeys()">Clear All Keys</button>
+            <div id="test5-result"></div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="test-section">
+            <h2><span class="icon">📊</span> Statistics</h2>
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-keys">0</div>
+                    <div class="stat-label">Saved Keys</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-storage">0 KB</div>
+                    <div class="stat-label">Storage Used</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-items">0</div>
+                    <div class="stat-label">Total Items</div>
+                </div>
+            </div>
+            <button onclick="updateStats()" style="margin-top: 16px;">Refresh Stats</button>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'bestseller_api_keys';
+
+        // Test 1: Check if localStorage is available
+        function testLocalStorageAvailable() {
+            const resultDiv = document.getElementById('test1-result');
+            const statusBadge = document.getElementById('test1-status');
+            
+            try {
+                const test = '__storage_test__';
+                localStorage.setItem(test, test);
+                localStorage.removeItem(test);
+                
+                resultDiv.innerHTML = `
+                    <div class="result success">
+                        <strong>✅ Success!</strong><br>
+                        localStorage is available and working correctly.
+                    </div>
+                `;
+                statusBadge.textContent = 'Passed';
+                statusBadge.className = 'status-badge success';
+                updateStats();
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <strong>❌ Failed!</strong><br>
+                        localStorage is not available: ${error.message}<br>
+                        <small>Try using a regular browser window (not private/incognito mode)</small>
+                    </div>
+                `;
+                statusBadge.textContent = 'Failed';
+                statusBadge.className = 'status-badge error';
+            }
+        }
+
+        // Test 2: Save API key
+        function testSaveKey() {
+            const resultDiv = document.getElementById('test2-result');
+            const statusBadge = document.getElementById('test2-status');
+            const key = document.getElementById('testKey').value;
+            const provider = document.getElementById('testProvider').value;
+            
+            if (!key) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <strong>❌ Error!</strong><br>
+                        Please enter an API key to test.
+                    </div>
+                `;
+                return;
+            }
+            
+            try {
+                const keys = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+                const existingIndex = keys.findIndex(k => k.provider === provider);
+                
+                const keyData = {
+                    provider: provider,
+                    key: key,
+                    createdAt: existingIndex >= 0 ? keys[existingIndex].createdAt : new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+
+                if (existingIndex >= 0) {
+                    keys[existingIndex] = keyData;
+                } else {
+                    keys.push(keyData);
+                }
+
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(keys));
+                
+                resultDiv.innerHTML = `
+                    <div class="result success">
+                        <strong>✅ Success!</strong><br>
+                        API key saved for provider: <strong>${provider}</strong><br>
+                        Key: <code>${key.substring(0, 10)}...</code><br>
+                        Timestamp: ${new Date().toLocaleString()}
+                    </div>
+                `;
+                statusBadge.textContent = 'Passed';
+                statusBadge.className = 'status-badge success';
+                updateStats();
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <strong>❌ Failed!</strong><br>
+                        Error saving key: ${error.message}
+                    </div>
+                `;
+                statusBadge.textContent = 'Failed';
+                statusBadge.className = 'status-badge error';
+            }
+        }
+
+        // Test 3: Load API keys
+        function testLoadKeys() {
+            const resultDiv = document.getElementById('test3-result');
+            const statusBadge = document.getElementById('test3-status');
+            
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                
+                if (!stored) {
+                    resultDiv.innerHTML = `
+                        <div class="result info">
+                            <strong>ℹ️ No keys found</strong><br>
+                            No API keys are currently stored in localStorage.<br>
+                            Use Test 2 to save a test key.
+                        </div>
+                    `;
+                    statusBadge.textContent = 'Empty';
+                    statusBadge.className = 'status-badge pending';
+                    return;
+                }
+                
+                const keys = JSON.parse(stored);
+                const keyList = keys.map(k => `
+                    <li>
+                        <strong>${k.provider}</strong>: ${k.key.substring(0, 15)}...
+                        <br><small>Updated: ${new Date(k.updatedAt).toLocaleString()}</small>
+                    </li>
+                `).join('');
+                
+                resultDiv.innerHTML = `
+                    <div class="result success">
+                        <strong>✅ Found ${keys.length} key(s)</strong>
+                        <ul style="margin-top: 12px; padding-left: 20px;">
+                            ${keyList}
+                        </ul>
+                        <pre>${JSON.stringify(keys, null, 2)}</pre>
+                    </div>
+                `;
+                statusBadge.textContent = 'Passed';
+                statusBadge.className = 'status-badge success';
+                updateStats();
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <strong>❌ Failed!</strong><br>
+                        Error loading keys: ${error.message}
+                    </div>
+                `;
+                statusBadge.textContent = 'Failed';
+                statusBadge.className = 'status-badge error';
+            }
+        }
+
+        // Test 4: View raw storage
+        function testRawStorage() {
+            const resultDiv = document.getElementById('test4-result');
+            const statusBadge = document.getElementById('test4-status');
+            
+            try {
+                const allItems = {};
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    allItems[key] = localStorage.getItem(key);
+                }
+                
+                resultDiv.innerHTML = `
+                    <div class="result info">
+                        <strong>📦 localStorage Contents</strong><br>
+                        Total items: ${localStorage.length}
+                        <pre>${JSON.stringify(allItems, null, 2)}</pre>
+                    </div>
+                `;
+                statusBadge.textContent = 'Passed';
+                statusBadge.className = 'status-badge success';
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <strong>❌ Failed!</strong><br>
+                        Error reading storage: ${error.message}
+                    </div>
+                `;
+                statusBadge.textContent = 'Failed';
+                statusBadge.className = 'status-badge error';
+            }
+        }
+
+        // Test 5: Clear all keys
+        function testClearKeys() {
+            if (!confirm('Are you sure you want to clear all API keys from localStorage?')) {
+                return;
+            }
+            
+            const resultDiv = document.getElementById('test5-result');
+            const statusBadge = document.getElementById('test5-status');
+            
+            try {
+                localStorage.removeItem(STORAGE_KEY);
+                resultDiv.innerHTML = `
+                    <div class="result success">
+                        <strong>✅ Success!</strong><br>
+                        All API keys have been cleared from localStorage.
+                    </div>
+                `;
+                statusBadge.textContent = 'Passed';
+                statusBadge.className = 'status-badge success';
+                updateStats();
+                
+                // Reset other test statuses
+                document.getElementById('test3-status').textContent = 'Pending';
+                document.getElementById('test3-status').className = 'status-badge pending';
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <strong>❌ Failed!</strong><br>
+                        Error clearing keys: ${error.message}
+                    </div>
+                `;
+                statusBadge.textContent = 'Failed';
+                statusBadge.className = 'status-badge error';
+            }
+        }
+
+        // Update statistics
+        function updateStats() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                const keys = stored ? JSON.parse(stored) : [];
+                
+                document.getElementById('stat-keys').textContent = keys.length;
+                document.getElementById('stat-items').textContent = localStorage.length;
+                
+                // Calculate storage size
+                let totalSize = 0;
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    const value = localStorage.getItem(key);
+                    totalSize += key.length + value.length;
+                }
+                document.getElementById('stat-storage').textContent = (totalSize / 1024).toFixed(2) + ' KB';
+            } catch (error) {
+                console.error('Error updating stats:', error);
+            }
+        }
+
+        // Auto-run tests on load
+        window.onload = function() {
+            console.log('🧪 localStorage Verifier Loaded');
+            testLocalStorageAvailable();
+            updateStats();
+        };
+    </script>
+</body>
+</html>

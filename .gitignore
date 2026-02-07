@@ -45,3 +45,7 @@ temp/
 foundation-completion/
 .vercel
 .env*.local
+
+# Old project folder (code moved to root)
+project/
+Bestseller-Author-Pro/
