@@ -116,10 +116,15 @@ export default function Builder() {
     const file = e.target.files?.[0];
     if (file) {
       setUploadedFile(file);
+      setError(null);
       // Read file content
       const reader = new FileReader();
       reader.onload = (event) => {
         setOutline(event.target?.result as string);
+      };
+      reader.onerror = () => {
+        setError('Failed to read file. Please try again.');
+        setUploadedFile(null);
       };
       reader.readAsText(file);
     }

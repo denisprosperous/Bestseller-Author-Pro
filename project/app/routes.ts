@@ -6,6 +6,7 @@ export default [
   route("brainstorm", "routes/brainstorm.tsx"),
   route("builder", "routes/builder.tsx"),
   route("preview", "routes/preview.tsx"),
+  route("api/brainstorm", "routes/api.brainstorm.ts"),
   route("api/keys", "routes/api.keys.ts"),
   route("api/keys/secure", "routes/api.keys.secure.ts"),
   route("api/encryption", "routes/api.encryption.ts"),

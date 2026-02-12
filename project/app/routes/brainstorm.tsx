@@ -1,6 +1,6 @@
 import React from "react";
 import { Loader2 } from "lucide-react";
-import { useLoaderData, useActionData, useNavigation, Form } from "react-router";
+import { useLoaderData, useNavigation, Form, useFetcher, useNavigate } from "react-router";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import type { Route } from "./+types/brainstorm";
 import { Navigation } from "~/components/navigation";
@@ -197,17 +197,20 @@ export async function action({ request }: ActionFunctionArgs): Promise<Response>
 
 export default function Brainstorm() {
   const { sessionId, existingResults, hasApiKeys } = useLoaderData<LoaderData>();
-  const actionData = useActionData<ActionData>();
   const navigation = useNavigation();
+  const fetcher = useFetcher<ActionData>();
+  const navigate = useNavigate();
   
   const [idea, setIdea] = React.useState("");
   const [provider, setProvider] = React.useState("auto");
   const [model, setModel] = React.useState("auto");
   const [selectedTitle, setSelectedTitle] = React.useState<string | null>(null);
+  const [resultsState, setResultsState] = React.useState<BrainstormResults | null>(existingResults);
+  const [errorState, setErrorState] = React.useState<string | undefined>(undefined);
 
   const isSubmitting = navigation.state === "submitting";
-  const results = actionData?.results || existingResults;
-  const error = actionData?.error;
+  const results = resultsState;
+  const error = errorState;
 
   const selectedProvider = AI_PROVIDERS.find((p) => p.id === provider);
   const availableModels = selectedProvider?.models || [];
@@ -218,6 +221,17 @@ export default function Brainstorm() {
       setModel(availableModels[0].id);
     }
   }, [provider, availableModels, model]);
+
+  React.useEffect(() => {
+    if (fetcher.data) {
+      if (fetcher.data.error) {
+        setErrorState(fetcher.data.error);
+      } else if (fetcher.data.results) {
+        setResultsState(fetcher.data.results);
+        setErrorState(undefined);
+      }
+    }
+  }, [fetcher.data]);
 
   if (!hasApiKeys) {
     return (
@@ -254,7 +268,7 @@ export default function Brainstorm() {
               </p>
             </header>
 
-            <Form method="post" className={styles.form}>
+            <fetcher.Form method="post" action="/api/brainstorm" className={styles.form}>
               <input type="hidden" name="actionType" value="generate" />
               <input type="hidden" name="sessionId" value={sessionId || ''} />
               
@@ -325,7 +339,7 @@ export default function Brainstorm() {
                   )}
                 </Button>
               </div>
-            </Form>
+            </fetcher.Form>
 
             {isSubmitting && (
               <div className={styles.loading}>
@@ -365,14 +379,17 @@ export default function Brainstorm() {
                     Start Over
                   </Button>
                   
-                  <Form method="post" style={{ display: 'inline' }}>
-                    <input type="hidden" name="actionType" value="selectTitle" />
-                    <input type="hidden" name="sessionId" value={sessionId || ''} />
-                    <input type="hidden" name="selectedTitle" value={selectedTitle || ''} />
-                    <Button type="submit" disabled={!selectedTitle}>
-                      Use This Outline
-                    </Button>
-                  </Form>
+                  <Button
+                    variant="default"
+                    onClick={() => {
+                      if (selectedTitle && sessionId) {
+                        navigate(`/builder?session=${sessionId}`);
+                      }
+                    }}
+                    disabled={!selectedTitle}
+                  >
+                    Use This Outline
+                  </Button>
                 </div>
               </div>
             )}
