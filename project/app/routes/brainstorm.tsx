@@ -11,7 +11,7 @@ import { Textarea } from "~/components/ui/textarea/textarea";
 import { Alert, AlertDescription } from "~/components/ui/alert/alert";
 import { AI_PROVIDERS } from "~/data/ai-providers";
 import { aiService } from "~/utils/ai-service";
-import { apiKeyService } from "~/services/api-key-service";
+import { apiKeyService } from "~/services/api-key-service.server";
 import { sessionService } from "~/services/session-service";
 import type { BrainstormResult, BookOutline } from "~/services/session-service";
 import { AuthService } from "~/services/auth-service";

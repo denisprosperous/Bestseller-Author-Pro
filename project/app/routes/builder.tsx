@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~
 import { Alert, AlertDescription } from "~/components/ui/alert/alert";
 import { AI_PROVIDERS, TONE_OPTIONS } from "~/data/ai-providers";
 import { aiService } from "~/utils/ai-service";
-import { apiKeyService } from "~/services/api-key-service";
+// import { apiKeyService } from "~/services/api-key-service.server"; // Removed for client-side build compatibility
 import { sessionService } from "~/services/session-service";
 import { contentService, type GeneratedChapter } from "~/services/content-service";
 import { AuthService } from "~/services/auth-service";
@@ -166,7 +166,14 @@ export default function Builder() {
       // Get API key for the selected provider
       let apiKey = '';
       if (provider !== 'auto') {
-        apiKey = await apiKeyService.getApiKey(userId, provider) || '';
+        try {
+            const response = await fetch(`/api/keys/retrieve?provider=${provider}`);
+            if (response.ok) {
+                const data = await response.json();
+                apiKey = data.key || '';
+            }
+        } catch (e) { console.error("Error fetching API key", e); }
+
         if (!apiKey) {
           throw new Error(`No API key found for ${selectedProvider?.name}. Please add your API key in Settings.`);
         }
@@ -174,11 +181,16 @@ export default function Builder() {
         // For auto mode, get any available API key
         const providers = ['openai', 'anthropic', 'xai', 'google', 'deepseek'];
         for (const p of providers) {
-          const key = await apiKeyService.getApiKey(userId, p);
-          if (key) {
-            apiKey = key;
-            break;
-          }
+          try {
+            const response = await fetch(`/api/keys/retrieve?provider=${p}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.key) {
+                    apiKey = data.key;
+                    break;
+                }
+            }
+          } catch (e) { }
         }
         if (!apiKey) {
           throw new Error('No API keys found. Please add at least one API key in Settings to use auto mode.');

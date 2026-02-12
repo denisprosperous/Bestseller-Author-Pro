@@ -1,5 +1,4 @@
 {
-  "framework": "react-router",
   "env": {
     "NODE_ENV": "production"
   },

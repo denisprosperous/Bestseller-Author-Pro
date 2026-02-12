@@ -9,7 +9,7 @@ import { EXPORT_FORMATS } from "~/data/ai-providers";
 import { exportService } from "~/utils/export-service";
 import { contentService, type GeneratedEbook } from "~/services/content-service";
 import { aiService } from "~/utils/ai-service";
-import { apiKeyService } from "~/services/api-key-service";
+// import { apiKeyService } from "~/services/api-key-service.server"; // Removed for client-side build compatibility
 import { AuthService } from "~/services/auth-service";
 import { ProtectedRoute } from "~/components/protected-route";
 import styles from "./preview.module.css";
@@ -108,17 +108,24 @@ export default function Preview() {
     try {
       const userId = await getUserId();
       
-      // Get API key for humanization
+      // Get API key for humanization via Resource Route (to avoid server code in client bundle)
       const providers = ['openai', 'anthropic', 'xai', 'google', 'deepseek'];
       let apiKey = '';
       let provider = '';
 
       for (const p of providers) {
-        const key = await apiKeyService.getApiKey(userId, p);
-        if (key) {
-          apiKey = key;
-          provider = p;
-          break;
+        try {
+            const response = await fetch(`/api/keys/retrieve?provider=${p}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.key) {
+                    apiKey = data.key;
+                    provider = p;
+                    break;
+                }
+            }
+        } catch (e) {
+            console.warn(`Failed to check key for ${p}`, e);
         }
       }
 

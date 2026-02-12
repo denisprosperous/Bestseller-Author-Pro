@@ -11,7 +11,7 @@ import { Badge } from '~/components/ui/badge/badge';
 import { Progress } from '~/components/ui/progress/progress';
 import { toast } from '~/hooks/use-toast';
 import { aiService } from '~/utils/ai-service';
-import { apiKeyService } from '~/services/api-key-service';
+import { apiKeyService } from "~/services/api-key-service.server";
 import { imageGenerationService, type ImageGenerationRequest } from '~/services/image-generation-service';
 import { contentService } from '~/services/content-service';
 import styles from './children-books.module.css';
